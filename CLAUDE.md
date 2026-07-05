@@ -77,3 +77,19 @@ There are no lint or test scripts configured in either project.
   (`Overview`, `BlockingChain`, `TopQueriesTable`, `ActiveSessionsTable`,
   `WaitStatsTable`) once connected.
 - Styling is a single hand-written `styles.css` (no CSS framework/CSS-in-JS).
+
+## Maintaining docs
+
+When making a meaningful change (new feature, endpoint, DMV query, behavior
+change, or bug fix worth noting), update these alongside the code — don't
+leave them to drift:
+
+- `CHANGELOG.md` — add an entry under a new version heading (or an
+  `Unreleased` section if no version bump is requested) describing what
+  changed.
+- `README.md` — update if the feature list, stack, or high-level "what it
+  shows" section is affected.
+- `INSTRUCTIONS.md` — update if setup steps, commands, or user-facing usage
+  changes.
+- `CLAUDE.md` (this file) — update if the architecture, file responsibilities,
+  or commands change.
