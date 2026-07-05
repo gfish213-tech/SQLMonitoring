@@ -26,10 +26,8 @@ function toConnectionPayload(form: ConnectionForm) {
     server: form.server,
     port: form.port ? Number(form.port) : undefined,
     database: form.database,
-    user: form.user,
-    password: form.password,
+    instanceName: form.instanceName || undefined,
     encrypt: form.encrypt,
-    trustServerCertificate: form.trustServerCertificate,
   };
 }
 

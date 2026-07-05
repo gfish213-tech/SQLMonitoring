@@ -43,7 +43,7 @@ export default function App() {
         <h1>SQL Performance Monitor</h1>
         <div className="connection-info">
           <span>
-            {connection.user}@{connection.server} / {connection.database}
+            {connection.loginName}@{connection.server} / {connection.database}
           </span>
           <button onClick={handleDisconnect}>Disconnect</button>
         </div>

@@ -32,16 +32,48 @@ npm run preview  # preview the production build
 
 There are no lint or test scripts configured in either project.
 
+`server`'s `npm install` compiles the native `msnodesqlv8` driver via
+node-gyp — this requires a C++ build toolchain and the Microsoft ODBC Driver
+for SQL Server on the host, and in practice requires Windows (see
+Authentication below). It will not build in a plain Linux/macOS dev sandbox
+without unixODBC + the ODBC driver installed, and even then trusted-connection
+auth needs the host to be domain-joined. **This means the server cannot be
+boot-tested in most CI/sandbox environments** — verify server-side changes by
+`tsc --noEmit`, code review, and (if possible) manual testing on a real
+Windows host with a SQL Server, rather than assuming `npm run dev` will start.
+
+## Authentication
+
+The app authenticates to SQL Server via **Windows Integrated Authentication
+(trusted connection)** only — there is no username/password field or SQL
+login path anywhere in the code. The connecting identity is always whichever
+Windows account the Node server process runs as.
+
+Every `connect()`/`testConnection()` call in `db.ts` runs
+`IS_SRVROLEMEMBER('sysadmin')` right after opening the pool and throws
+(closing the pool) if the result isn't `1`. This is a hard gate with no
+lesser-privilege mode — don't add a bypass or a lower-privilege code path
+without being asked; it's a deliberate security requirement, not a default
+that happens to be strict.
+
 ## Architecture
 
 ### Server (`server/src`)
 
-- `db.ts` — owns a single in-memory `mssql` `ConnectionPool` for the whole
-  process (module-level singleton, not per-request). `connect()` replaces
-  the active pool; `getPool()` throws if nothing is connected yet. Credentials
-  are never persisted — they only ever live in this in-memory pool config.
+- `db.ts` — owns a single in-memory `ConnectionPool` (from
+  `mssql/msnodesqlv8`, not plain `mssql`) for the whole process (module-level
+  singleton, not per-request). `connect()`/`testConnection()` both go through
+  `openVerifiedPool()`, which opens the pool, runs the sysadmin check, and
+  closes the pool again on any failure (bad connection *or* failed sysadmin
+  check). `getPool()` throws if nothing is connected yet. No credentials are
+  ever collected or stored — auth is entirely delegated to the OS identity.
+- `types/mssql-msnodesqlv8.d.ts` — ambient module declaration aliasing
+  `mssql/msnodesqlv8`'s types to the `mssql` package's types, since
+  `@types/mssql` doesn't cover that driver subpath. Needed for `tsc` to
+  resolve `import sql from "mssql/msnodesqlv8"` in `db.ts`.
 - `routes/connection.ts` — pool lifecycle endpoints (`test`, connect,
-  `status`, `disconnect`). Mounted at `/api/connection`.
+  `status`, `disconnect`). Mounted at `/api/connection`. Request bodies only
+  carry `server`/`port`/`database`/`instanceName`/`encrypt` — no credentials.
 - `routes/dashboard.ts` — all data endpoints (`overview`, `queries/top`,
   `sessions`, `blocking`, `waits`). Mounted at `/api`, and applies a
   `requireConnection` middleware via `router.use()` with no path — this

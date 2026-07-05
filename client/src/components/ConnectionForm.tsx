@@ -6,10 +6,8 @@ const initialForm: ConnectionFormData = {
   server: "",
   port: "1433",
   database: "",
-  user: "",
-  password: "",
-  encrypt: true,
-  trustServerCertificate: true,
+  instanceName: "",
+  encrypt: false,
 };
 
 export function ConnectionForm({ onConnected }: { onConnected: (meta: ConnectionMeta) => void }) {
@@ -51,7 +49,10 @@ export function ConnectionForm({ onConnected }: { onConnected: (meta: Connection
   return (
     <div className="connection-card">
       <h1>SQL Performance Monitor</h1>
-      <p className="subtitle">Connect to a SQL Server instance to start monitoring.</p>
+      <p className="subtitle">
+        Connects using this application's Windows account (integrated/NT authentication). The
+        connecting account must be a member of the <code>sysadmin</code> server role.
+      </p>
       <form className="connection-form">
         <label>
           Server / Host
@@ -62,29 +63,17 @@ export function ConnectionForm({ onConnected }: { onConnected: (meta: Connection
           <input value={form.port} onChange={(e) => update("port", e.target.value)} placeholder="1433" />
         </label>
         <label>
+          Instance Name (optional)
+          <input value={form.instanceName} onChange={(e) => update("instanceName", e.target.value)} placeholder="SQLEXPRESS" />
+        </label>
+        <label>
           Database
           <input value={form.database} onChange={(e) => update("database", e.target.value)} placeholder="master" required />
-        </label>
-        <label>
-          Username
-          <input value={form.user} onChange={(e) => update("user", e.target.value)} required />
-        </label>
-        <label>
-          Password
-          <input type="password" value={form.password} onChange={(e) => update("password", e.target.value)} required />
         </label>
         <div className="checkbox-row">
           <label>
             <input type="checkbox" checked={form.encrypt} onChange={(e) => update("encrypt", e.target.checked)} />
             Encrypt connection
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={form.trustServerCertificate}
-              onChange={(e) => update("trustServerCertificate", e.target.checked)}
-            />
-            Trust server certificate
           </label>
         </div>
 

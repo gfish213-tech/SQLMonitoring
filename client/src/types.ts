@@ -2,16 +2,14 @@ export interface ConnectionForm {
   server: string;
   port: string;
   database: string;
-  user: string;
-  password: string;
+  instanceName: string;
   encrypt: boolean;
-  trustServerCertificate: boolean;
 }
 
 export interface ConnectionMeta {
   server: string;
   database: string;
-  user: string;
+  loginName: string;
 }
 
 export interface OverviewStats {

@@ -1,28 +1,37 @@
-import sql, { ConnectionPool } from "mssql";
+import sql, { ConnectionPool } from "mssql/msnodesqlv8";
 
 export interface ConnectionInput {
   server: string;
   port?: number;
   database: string;
-  user: string;
-  password: string;
+  instanceName?: string;
   encrypt?: boolean;
-  trustServerCertificate?: boolean;
+}
+
+export interface ConnectionMeta {
+  server: string;
+  database: string;
+  loginName: string;
+}
+
+interface SysadminCheckRow {
+  is_sysadmin: number | null;
+  login_name: string;
 }
 
 let pool: ConnectionPool | null = null;
-let activeConnectionMeta: { server: string; database: string; user: string } | null = null;
+let activeConnectionMeta: ConnectionMeta | null = null;
 
 function toConfig(input: ConnectionInput): sql.config {
   return {
+    driver: "msnodesqlv8",
     server: input.server,
     port: input.port ?? 1433,
     database: input.database,
-    user: input.user,
-    password: input.password,
     options: {
-      encrypt: input.encrypt ?? true,
-      trustServerCertificate: input.trustServerCertificate ?? true,
+      instanceName: input.instanceName || undefined,
+      trustedConnection: true,
+      encrypt: input.encrypt ?? false,
     },
     pool: {
       max: 5,
@@ -34,28 +43,47 @@ function toConfig(input: ConnectionInput): sql.config {
   };
 }
 
-export async function connect(input: ConnectionInput): Promise<void> {
+function assertSysadmin(row: SysadminCheckRow | undefined): asserts row is SysadminCheckRow {
+  if (!row || row.is_sysadmin !== 1) {
+    const who = row?.login_name ? ` Connected as '${row.login_name}'.` : "";
+    throw new Error(`Access denied: this Windows login is not a member of the sysadmin server role.${who}`);
+  }
+}
+
+// Opens a pool using the caller's Windows identity (trusted connection) and verifies
+// it's a sysadmin before handing it back. Closes the pool itself on any failure.
+async function openVerifiedPool(input: ConnectionInput): Promise<{ pool: ConnectionPool; loginName: string }> {
   const config = toConfig(input);
   const newPool = new sql.ConnectionPool(config);
-  await newPool.connect();
+
+  try {
+    await newPool.connect();
+    const result = await newPool.request().query<SysadminCheckRow>(
+      "SELECT CAST(IS_SRVROLEMEMBER('sysadmin') AS INT) AS is_sysadmin, SUSER_SNAME() AS login_name"
+    );
+    assertSysadmin(result.recordset[0]);
+    return { pool: newPool, loginName: result.recordset[0].login_name };
+  } catch (err) {
+    await newPool.close().catch(() => undefined);
+    throw err;
+  }
+}
+
+export async function connect(input: ConnectionInput): Promise<ConnectionMeta> {
+  const { pool: newPool, loginName } = await openVerifiedPool(input);
 
   if (pool) {
     await pool.close().catch(() => undefined);
   }
 
   pool = newPool;
-  activeConnectionMeta = { server: input.server, database: input.database, user: input.user };
+  activeConnectionMeta = { server: input.server, database: input.database, loginName };
+  return activeConnectionMeta;
 }
 
 export async function testConnection(input: ConnectionInput): Promise<void> {
-  const config = toConfig(input);
-  const testPool = new sql.ConnectionPool(config);
-  try {
-    await testPool.connect();
-    await testPool.request().query("SELECT 1 AS ok");
-  } finally {
-    await testPool.close().catch(() => undefined);
-  }
+  const { pool: testPool } = await openVerifiedPool(input);
+  await testPool.close().catch(() => undefined);
 }
 
 export function getPool(): ConnectionPool {

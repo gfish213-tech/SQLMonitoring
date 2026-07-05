@@ -6,15 +6,32 @@ from SQL Server's dynamic management views (DMVs).
 
 ## Stack
 
-- **Server**: Node.js + Express + TypeScript, using the `mssql` package to query
-  SQL Server DMVs.
+- **Server**: Node.js + Express + TypeScript, using the `mssql` package (via the
+  `msnodesqlv8` native driver) to query SQL Server DMVs.
 - **Client**: React + Vite + TypeScript, polling the API on an interval per panel.
+
+## Authentication
+
+The app connects to SQL Server using **Windows Integrated Authentication (a
+trusted connection)** — there is no username/password. The connecting identity
+is whichever Windows account the Node server process runs as. That account
+**must be a member of the `sysadmin` fixed server role**; the server verifies
+this immediately after connecting and refuses the connection (closing the pool)
+if it isn't.
 
 ## Requirements
 
-- Node.js 18+
-- A reachable SQL Server instance and a login with `VIEW SERVER STATE` permission
-  (needed to read the DMVs used by this tool).
+- **Windows**, since Integrated Authentication (trusted connection) requires
+  the OS-level SSPI/Kerberos identity of the process. (The `msnodesqlv8` driver
+  can technically build on Linux/macOS with unixODBC + the Microsoft ODBC
+  Driver installed, but trusted-connection auth in that configuration depends
+  on the host being domain-joined — Windows is the supported path.)
+- Node.js 18+, Python and a C++ build toolchain (needed to compile the native
+  `msnodesqlv8` driver via node-gyp), and the Microsoft ODBC Driver for SQL
+  Server installed on the host.
+- The Windows account running the server must be a SQL Server login with the
+  `sysadmin` server role (this also covers `VIEW SERVER STATE`, needed to read
+  the DMVs this tool queries).
 
 ## Running locally
 
@@ -37,8 +54,9 @@ npm run dev
 ```
 
 The client runs on `http://localhost:5173` (Vite proxies `/api` to the server).
-Open it in a browser, enter your SQL Server connection details, and click
-**Connect**.
+Open it in a browser, enter the server/database (and instance name, if any),
+and click **Connect** — no credentials needed, it uses the server process's
+Windows identity.
 
 ## What it shows
 
@@ -53,9 +71,12 @@ Open it in a browser, enter your SQL Server connection details, and click
 
 ## Notes
 
-- The connection is held in memory on the server process for the current
-  session only — credentials are never written to disk.
+- The connection pool is held in memory on the server process for the current
+  session only; no credentials are ever collected or stored, since auth is
+  entirely delegated to the Windows identity the process runs as.
 - This is a single-connection monitoring tool, not a multi-tenant service; it
-  has no authentication layer of its own. Don't expose the server port
-  directly to an untrusted network — put it behind your own auth/reverse
-  proxy if deploying beyond local use.
+  has no authentication layer of its own for the web UI itself. Don't expose
+  the server port directly to an untrusted network — put it behind your own
+  auth/reverse proxy if deploying beyond local use.
+- Access is gated on the SQL Server side: only a Windows account with the
+  `sysadmin` server role can use this tool. There's no lesser-privilege mode.
