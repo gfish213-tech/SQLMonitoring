@@ -1,12 +1,14 @@
 import { ReactNode } from "react";
 
 export function Section({
+  id,
   title,
   isEmpty,
   emptyText,
   children,
   badge,
 }: {
+  id?: string;
   title: string;
   isEmpty: boolean;
   emptyText: string;
@@ -14,7 +16,7 @@ export function Section({
   badge?: ReactNode;
 }) {
   return (
-    <section className={`panel ${isEmpty ? "" : "panel-flagged"}`}>
+    <section id={id} className={`panel ${isEmpty ? "" : "panel-flagged"}`}>
       <div className="panel-header">
         <h2>{title}</h2>
         {badge}

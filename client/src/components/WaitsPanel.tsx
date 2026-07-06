@@ -4,7 +4,13 @@ import type { CurrentWaitRow } from "../types";
 
 export function WaitsPanel({ waits }: { waits: CurrentWaitRow[] }) {
   return (
-    <Section title="Current Waits" isEmpty={waits.length === 0} emptyText="No sessions are currently waiting on anything notable.">
+    <Section
+      id="panel-waits"
+      title="Current Waits"
+      badge={<span className="panel-hint">excludes benign background waits</span>}
+      isEmpty={waits.length === 0}
+      emptyText="No sessions are currently waiting on anything notable."
+    >
       <div className="table-wrap">
         <table>
           <thead>

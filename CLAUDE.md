@@ -239,6 +239,32 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
   alignment) to carry meaning, since none of that survives being pasted into
   a chat. Update this alongside `types.ts` when an API response shape
   changes, the same as the panel components.
+- **Section anchors + jump nav**: `Section.tsx` takes an optional `id` prop;
+  every panel passes a stable `panel-*` id (Pressure/TempDB/Overview/
+  Diagnosis aren't `Section`-based, so their id is set directly on their own
+  root element). `App.tsx`'s `.sticky-toolbar` (refresh bar + a
+  `.section-nav` row of anchor links) stays pinned via `position: sticky` so
+  both the controls and the jump links remain reachable on a long page.
+  `scroll-margin-top` on `.panel`/`.diagnosis-banner`/`#panel-overview` in
+  `styles.css` offsets the jump target below the sticky toolbar's height —
+  if the toolbar's height changes (new button, wrapping nav row at a
+  different viewport), that value needs adjusting too, or a jump will land
+  with the heading hidden behind the toolbar. New panels need a new anchor
+  id here and a matching link in `App.tsx`'s nav, or they're unreachable
+  from it.
+- **Explanatory hints**: `StatCard` takes an optional `hint` (rendered as a
+  small "ⓘ" with a native `title` tooltip) for stats whose meaning isn't
+  self-evident from the number alone (e.g. that Signal Wait % / Buffer
+  Cache Hit Ratio are a 1-second sample, or that Version Store always reads
+  0 pre-2016 SP2). `Section`'s `badge` prop is used the same way at the
+  panel level for filtering/scope caveats that must stay visible whether or
+  not the panel is empty (e.g. "top 20 by CPU time", "last 24 hours", "only
+  databases over 50% log used") — the empty-state text alone only conveys
+  this when the panel has nothing to show. `summary.ts` repeats the same
+  caveats inline in each section's Markdown heading so they survive being
+  pasted elsewhere. Any new panel with a non-obvious threshold, sample
+  window, or row cap should follow the same pattern rather than leaving it
+  to only the code comments.
 - `components/ServerPicker.tsx` — the connect screen: a `<select>` populated
   from `GET /api/connection/servers`, with an environment badge, replacing
   what used to be a manual connection form.

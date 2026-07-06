@@ -33,6 +33,23 @@
   AI text) is now labeled "averaged since SQL Server restart" — that DMV is
   cumulative, and a 1-second sample would be too noisy for quiet files, so
   the caveat is stated instead of leaving the number to read as live.
+
+### Added
+- **Explanatory tooltips and panel badges** so a number or an empty panel
+  isn't misread: a small "ⓘ" hint on stats whose meaning isn't obvious from
+  the value alone (e.g. that Signal Wait % / Buffer Cache Hit Ratio /
+  Batch Requests/sec are a 1-second sample; that TempDB Used includes the
+  version store; that Version Store always reads 0 before 2016 SP2), and a
+  persistent header badge on panels with a filtering rule that otherwise
+  only shows up in the empty-state text (e.g. "top 20 by CPU time", "last
+  24 hours", "excludes benign background waits", "only databases over 50%
+  log used"). The Copy for AI text carries the same caveats inline in each
+  section heading.
+- **"Jump to section" navigation**: a row of anchor links (Diagnosis,
+  Overview, Pressure, TempDB, Blocking, Consumers, and all 7 reference
+  panels) sits below the Refresh bar, and both stay pinned to the top of
+  the screen while scrolling (`position: sticky`) so the controls and the
+  nav are always reachable on what is otherwise a long page.
 - `consumers.ts`'s per-session tempdb calculation had a paren mismatch that
   put the `* 8.0 / 1024` cast math inside `SUM(...)`'s own argument list,
   which made SQL Server parse it as a call to a nonexistent table function

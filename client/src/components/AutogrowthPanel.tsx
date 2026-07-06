@@ -5,7 +5,9 @@ import type { AutogrowthEvent } from "../types";
 export function AutogrowthPanel({ autogrowth }: { autogrowth: AutogrowthEvent[] }) {
   return (
     <Section
+      id="panel-autogrowth"
       title="Recent Auto-Growth Events"
+      badge={<span className="panel-hint">last 24 hours</span>}
       isEmpty={autogrowth.length === 0}
       emptyText="No data/log file auto-growth events in the last 24 hours."
     >

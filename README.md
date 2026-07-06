@@ -84,9 +84,16 @@ the rate/pressure numbers (Batch Requests/sec, buffer cache hit ratio,
 signal wait %) are measured over a real 1-second sample rather than shown
 as misleading since-restart totals. **Copy for AI** copies the whole snapshot
 (diagnosis + every panel's data) to the clipboard as plain text, ready to
-paste into an AI chat for a second opinion or deeper analysis.
+paste into an AI chat for a second opinion or deeper analysis. A row of
+**jump-to-section links** below Refresh stays pinned while you scroll, so
+you can hop straight to any panel on what's otherwise a long page.
 
 ## What it shows
+
+Numbers and panels that could otherwise be misread carry a hint: stats with
+a small **ⓘ** explain what's being measured (hover it), and panels with a
+filtering rule (e.g. "top 20 by CPU time", "last 24 hours") show that rule
+in their header at all times, not just when the panel happens to be empty.
 
 At the top, a **diagnosis banner** scores all 12 panels against thresholds
 (e.g. blocking wait time, signal wait %, log/tempdb fullness, I/O latency) and

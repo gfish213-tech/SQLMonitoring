@@ -5,7 +5,9 @@ import type { ConsumerRow } from "../types";
 export function ConsumersPanel({ consumers }: { consumers: ConsumerRow[] }) {
   return (
     <Section
+      id="panel-consumers"
       title="Top Resource Consumers (Right Now)"
+      badge={<span className="panel-hint">top 20 by CPU time</span>}
       isEmpty={consumers.length === 0}
       emptyText="No active requests consuming significant resources right now."
     >

@@ -104,6 +104,14 @@ to copy the entire snapshot — the diagnosis plus every panel's data, spelled
 out as plain text — to your clipboard, ready to paste into an AI chat if you
 want a second opinion or help interpreting something unfamiliar.
 
+A row of section links (Diagnosis, Overview, Pressure, TempDB, Blocking,
+Consumers, and the 7 reference panels) sits just below the refresh bar and
+stays pinned to the top of the screen as you scroll, so you can jump straight
+to any panel without scrolling back up first. Hover the small **ⓘ** next to
+any stat for a one-line explanation of what it means and how it's measured;
+panels with a filtering rule (e.g. "top 20 by CPU time") show that rule in
+their header at all times, not only when the panel happens to be empty.
+
 Right below the refresh bar, a **diagnosis banner** does the first pass for
 you: it scores every panel's data against fixed thresholds and states the
 single most likely cause in plain language (e.g. "Most likely cause: Blocking

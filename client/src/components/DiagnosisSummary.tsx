@@ -8,7 +8,7 @@ export function DiagnosisSummary({ data }: { data: TriageData }) {
 
   if (findings.length === 0) {
     return (
-      <div className="diagnosis-banner diagnosis-clear">
+      <div id="panel-diagnosis" className="diagnosis-banner diagnosis-clear">
         <span className="diagnosis-icon">✓</span>
         <div>
           <div className="diagnosis-title">No obvious cause detected</div>
@@ -24,7 +24,7 @@ export function DiagnosisSummary({ data }: { data: TriageData }) {
   const [top, ...rest] = findings;
 
   return (
-    <div className={`diagnosis-banner diagnosis-${top.severity}`}>
+    <div id="panel-diagnosis" className={`diagnosis-banner diagnosis-${top.severity}`}>
       <span className="diagnosis-icon">{ICONS[top.severity]}</span>
       <div>
         <div className="diagnosis-title">

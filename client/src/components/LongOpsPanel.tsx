@@ -5,6 +5,7 @@ import type { LongOpRow } from "../types";
 export function LongOpsPanel({ longOps }: { longOps: LongOpRow[] }) {
   return (
     <Section
+      id="panel-longops"
       title="Backups & Long-Running Operations"
       isEmpty={longOps.length === 0}
       emptyText="No backup, restore, DBCC, or long-running operation in progress."

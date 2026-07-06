@@ -4,7 +4,7 @@ import type { LeadBlocker } from "../types";
 
 export function BlockingPanel({ blocking }: { blocking: LeadBlocker[] }) {
   return (
-    <Section title="Blocking & Long Transactions" isEmpty={blocking.length === 0} emptyText="No blocking detected.">
+    <Section id="panel-blocking" title="Blocking & Long Transactions" isEmpty={blocking.length === 0} emptyText="No blocking detected.">
       <div className="blocker-list">
         {blocking.map((b) => (
           <div className="blocker-card" key={b.sessionId}>

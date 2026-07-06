@@ -84,7 +84,7 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   }
   lines.push("");
 
-  lines.push("## Running Agent Jobs");
+  lines.push("## Running Agent Jobs (currently executing only, not scheduled or failed jobs)");
   if (data.agentJobs.length === 0) {
     lines.push("None running.");
   } else {
@@ -98,7 +98,7 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   }
   lines.push("");
 
-  lines.push("## Top Resource Consumers (Right Now)");
+  lines.push("## Top Resource Consumers (Right Now) (top 20 by CPU time)");
   if (data.consumers.length === 0) {
     lines.push("No active requests other than this connection.");
   } else {
@@ -114,7 +114,7 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   }
   lines.push("");
 
-  lines.push("## Current Waits");
+  lines.push("## Current Waits (excludes benign background waits)");
   if (data.waits.length === 0) {
     lines.push("No notable waits.");
   } else {
@@ -144,7 +144,7 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   }
   lines.push("");
 
-  lines.push("## Transaction Log Space");
+  lines.push("## Transaction Log Space (only databases over 50% log used are shown)");
   if (data.logSpace.length === 0) {
     lines.push("No database over 50% log used.");
   } else {
@@ -164,7 +164,7 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   }
   lines.push("");
 
-  lines.push("## Recent Auto-Growth Events");
+  lines.push("## Recent Auto-Growth Events (last 24 hours)");
   if (data.autogrowth.length === 0) {
     lines.push("None in the last 24 hours.");
   } else {
@@ -178,7 +178,7 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   }
   lines.push("");
 
-  lines.push("## Recent Deadlocks");
+  lines.push("## Recent Deadlocks (from system_health; already resolved automatically by SQL Server)");
   if (data.deadlocks.length === 0) {
     lines.push("None found in system_health.");
   } else {

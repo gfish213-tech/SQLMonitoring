@@ -4,7 +4,13 @@ import type { AgentJobRow } from "../types";
 
 export function AgentJobsPanel({ agentJobs }: { agentJobs: AgentJobRow[] }) {
   return (
-    <Section title="Running Agent Jobs" isEmpty={agentJobs.length === 0} emptyText="No SQL Agent jobs currently running.">
+    <Section
+      id="panel-agentjobs"
+      title="Running Agent Jobs"
+      badge={<span className="panel-hint">currently executing only, not scheduled or failed jobs</span>}
+      isEmpty={agentJobs.length === 0}
+      emptyText="No SQL Agent jobs currently running."
+    >
       <div className="table-wrap">
         <table>
           <thead>

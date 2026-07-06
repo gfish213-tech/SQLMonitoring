@@ -4,7 +4,9 @@ import type { LogSpaceRow } from "../types";
 export function LogSpacePanel({ logSpace }: { logSpace: LogSpaceRow[] }) {
   return (
     <Section
+      id="panel-logspace"
       title="Transaction Log Space"
+      badge={<span className="panel-hint">only databases over 50% log used are shown</span>}
       isEmpty={logSpace.length === 0}
       emptyText="No database has a transaction log over 50% full."
     >

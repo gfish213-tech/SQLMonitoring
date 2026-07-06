@@ -70,18 +70,38 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
         </div>
       </header>
 
-      <div className="refresh-bar">
-        <button className="primary" onClick={refresh} disabled={loading}>
-          {loading ? "Refreshing..." : "Refresh"}
-        </button>
-        <label className="auto-refresh-toggle">
-          <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
-          Auto-refresh every 20s
-        </label>
-        <button onClick={handleCopy} disabled={!data}>
-          {copied ? "Copied!" : "Copy for AI"}
-        </button>
-        {lastUpdated && <span className="last-updated">Last updated {lastUpdated.toLocaleTimeString()}</span>}
+      <div className="sticky-toolbar">
+        <div className="refresh-bar">
+          <button className="primary" onClick={refresh} disabled={loading}>
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
+          <label className="auto-refresh-toggle">
+            <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
+            Auto-refresh every 20s
+          </label>
+          <button onClick={handleCopy} disabled={!data}>
+            {copied ? "Copied!" : "Copy for AI"}
+          </button>
+          {lastUpdated && <span className="last-updated">Last updated {lastUpdated.toLocaleTimeString()}</span>}
+        </div>
+
+        {data && (
+          <nav className="section-nav" aria-label="Jump to section">
+            <a href="#panel-diagnosis">Diagnosis</a>
+            <a href="#panel-overview">Overview</a>
+            <a href="#panel-pressure">Pressure</a>
+            <a href="#panel-tempdb">TempDB</a>
+            <a href="#panel-blocking">Blocking</a>
+            <a href="#panel-consumers">Consumers</a>
+            <a href="#panel-longops">Backups</a>
+            <a href="#panel-agentjobs">Agent Jobs</a>
+            <a href="#panel-waits">Waits</a>
+            <a href="#panel-logspace">Log Space</a>
+            <a href="#panel-iolatency">IO Latency</a>
+            <a href="#panel-autogrowth">Autogrowth</a>
+            <a href="#panel-deadlocks">Deadlocks</a>
+          </nav>
+        )}
       </div>
 
       {error && <div className="message error">{error}</div>}
