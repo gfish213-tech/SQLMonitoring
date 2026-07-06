@@ -1,5 +1,47 @@
 # Version History
 
+## 1.2.0 — 2026-07-06
+
+Reworked into a live incident-triage tool ("why is the DB slow right now?")
+instead of a general trend dashboard — DBADash already covers daily/trend
+monitoring, so this tool now only shows current state.
+
+### Fixed
+- `mssql`'s `msnodesqlv8` connection-string builder hardcoded the deprecated
+  "SQL Server Native Client 11.0" ODBC driver on Windows and never wired up
+  `TrustServerCertificate` at all. The app now builds its own ODBC connection
+  string and probes installed drivers in order (18 → 17 → Native Client 11),
+  remembering whichever one works.
+- The native driver reports errors as plain objects (or arrays of them), not
+  `Error` instances, which is why failures previously showed as
+  `[object Object]`. Real diagnostic text (message + SQLSTATE) is now
+  extracted and surfaced.
+
+### Changed
+- **Single-command run**: the Express server now serves the built React app
+  as static files alongside the API on one port. A new root-level
+  `package.json` adds `install:all`/`build`/`start`/`serve` so the whole app
+  runs from one command instead of two separate dev servers.
+- **Server picker replaces the connection form**: no more manual
+  server/port/instance entry. `server/config/servers.json` holds a hardcoded,
+  editable list of servers with environment labels (color-coded badge:
+  Production/Staging/Development/deprecated); picking one and clicking
+  Connect does the rest.
+- **Manual refresh by default**: removed the always-on 5-10s polling. A
+  single **Refresh** button re-fetches everything in one combined request;
+  an explicit **Auto-refresh every 20s** checkbox opts into polling. This
+  tool must not add its own query load to a server that may already be
+  struggling.
+- **Dashboard rebuilt around 11 specific causes of slowness** instead of
+  general trend panels: Blocking & Long Transactions (now detects idle
+  sessions holding open transactions, not just active blockers), Backups &
+  Long-Running Operations, Running Agent Jobs, Top Resource Consumers (Right
+  Now), Current Waits, CPU & Memory Pressure, TempDB Contention, Transaction
+  Log Space, Disk/IO Latency, Recent Auto-Growth Events, Recent Deadlocks.
+- Removed the cumulative-since-restart Top Queries, Wait Stats, and Active
+  Sessions panels — that trend data is already covered by DBADash; this tool
+  only shows what's happening right now.
+
 ## 1.1.0 — 2026-07-05
 
 ### Changed

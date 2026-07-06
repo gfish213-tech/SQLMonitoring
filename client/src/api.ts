@@ -1,13 +1,4 @@
-import type {
-  ActiveSessionRow,
-  BlockingRow,
-  ConnectionForm,
-  ConnectionMeta,
-  OverviewStats,
-  TopQueryMetric,
-  TopQueryRow,
-  WaitStatRow,
-} from "./types";
+import type { ConnectionMeta, ServerListEntry, TriageData } from "./types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -22,42 +13,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-function toConnectionPayload(form: ConnectionForm) {
-  return {
-    server: form.server,
-    port: form.port ? Number(form.port) : undefined,
-    database: form.database,
-    instanceName: form.instanceName || undefined,
-    encrypt: form.encrypt,
-    trustServerCertificate: form.trustServerCertificate,
-  };
-}
-
 export const api = {
-  testConnection: (form: ConnectionForm) =>
-    request<{ ok: boolean }>("/connection/test", {
-      method: "POST",
-      body: JSON.stringify(toConnectionPayload(form)),
-    }),
+  servers: () => request<ServerListEntry[]>("/connection/servers"),
 
-  connect: (form: ConnectionForm) =>
-    request<{ ok: boolean; connection: ConnectionMeta }>("/connection", {
-      method: "POST",
-      body: JSON.stringify(toConnectionPayload(form)),
-    }),
+  testConnection: (server: string) =>
+    request<{ ok: boolean }>("/connection/test", { method: "POST", body: JSON.stringify({ server }) }),
+
+  connect: (server: string) =>
+    request<{ ok: boolean; connection: ConnectionMeta }>("/connection", { method: "POST", body: JSON.stringify({ server }) }),
 
   disconnect: () => request<{ ok: boolean }>("/connection/disconnect", { method: "POST" }),
 
   status: () => request<{ connected: boolean; connection: ConnectionMeta | null }>("/connection/status"),
 
-  overview: () => request<OverviewStats>("/overview"),
-
-  topQueries: (metric: TopQueryMetric, limit = 25) =>
-    request<TopQueryRow[]>(`/queries/top?metric=${metric}&limit=${limit}`),
-
-  sessions: () => request<ActiveSessionRow[]>("/sessions"),
-
-  blocking: () => request<BlockingRow[]>("/blocking"),
-
-  waits: (limit = 20) => request<WaitStatRow[]>(`/waits?limit=${limit}`),
+  triage: () => request<TriageData>("/triage"),
 };

@@ -1,10 +1,17 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { isConnected } from "../db";
 import { getOverview } from "../sql/overview";
-import { getTopQueries, TopQueryMetric } from "../sql/topQueries";
-import { getActiveSessions } from "../sql/activeSessions";
 import { getBlockingChains } from "../sql/blocking";
-import { getTopWaitStats } from "../sql/waitStats";
+import { getLongRunningOps } from "../sql/longOps";
+import { getRunningAgentJobs } from "../sql/agentJobs";
+import { getCurrentConsumers } from "../sql/consumers";
+import { getCurrentWaits } from "../sql/currentWaits";
+import { getPressureStats } from "../sql/pressure";
+import { getTempdbStats } from "../sql/tempdb";
+import { getLogSpaceUsage } from "../sql/logSpace";
+import { getIoLatency } from "../sql/ioLatency";
+import { getRecentAutogrowthEvents } from "../sql/autogrowth";
+import { getRecentDeadlocks } from "../sql/deadlocks";
 
 const router = Router();
 
@@ -18,50 +25,28 @@ function requireConnection(_req: Request, res: Response, next: NextFunction) {
 
 router.use(requireConnection);
 
-const VALID_METRICS: TopQueryMetric[] = ["cpu", "duration", "reads", "writes", "executions"];
-
-router.get("/overview", async (_req, res) => {
+// Single combined endpoint: the whole point is a manual "Refresh" click (or an explicit
+// auto-refresh opt-in) fetches everything in one request rather than 11 independent polling
+// loops hammering an already-struggling server.
+router.get("/triage", async (_req, res) => {
   try {
-    res.json(await getOverview());
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
+    const [overview, blocking, longOps, agentJobs, consumers, waits, pressure, tempdb, logSpace, ioLatency, autogrowth, deadlocks] =
+      await Promise.all([
+        getOverview(),
+        getBlockingChains(),
+        getLongRunningOps(),
+        getRunningAgentJobs(),
+        getCurrentConsumers(),
+        getCurrentWaits(),
+        getPressureStats(),
+        getTempdbStats(),
+        getLogSpaceUsage(),
+        getIoLatency(),
+        getRecentAutogrowthEvents(),
+        getRecentDeadlocks(),
+      ]);
 
-router.get("/queries/top", async (req, res) => {
-  try {
-    const metric = (req.query.metric as TopQueryMetric) ?? "cpu";
-    if (!VALID_METRICS.includes(metric)) {
-      res.status(400).json({ error: `metric must be one of ${VALID_METRICS.join(", ")}` });
-      return;
-    }
-    const limit = req.query.limit ? Number(req.query.limit) : 25;
-    res.json(await getTopQueries(metric, limit));
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-router.get("/sessions", async (_req, res) => {
-  try {
-    res.json(await getActiveSessions());
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-router.get("/blocking", async (_req, res) => {
-  try {
-    res.json(await getBlockingChains());
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-router.get("/waits", async (req, res) => {
-  try {
-    const limit = req.query.limit ? Number(req.query.limit) : 20;
-    res.json(await getTopWaitStats(limit));
+    res.json({ overview, blocking, longOps, agentJobs, consumers, waits, pressure, tempdb, logSpace, ioLatency, autogrowth, deadlocks });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }

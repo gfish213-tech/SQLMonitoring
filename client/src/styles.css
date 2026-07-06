@@ -78,13 +78,49 @@ code {
 }
 
 .connection-form input[type="text"],
-.connection-form input:not([type="checkbox"]) {
+.connection-form input:not([type="checkbox"]),
+.connection-form select {
   background: #0f1420;
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 9px 10px;
   color: var(--text);
   font-size: 14px;
+}
+
+.env-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+  background: #232a3b;
+  color: var(--text-dim);
+}
+
+.env-badge.env-prod {
+  background: rgba(255, 92, 92, 0.15);
+  color: #ff8080;
+}
+
+.env-badge.env-staging {
+  background: rgba(255, 184, 79, 0.15);
+  color: var(--warning);
+}
+
+.env-badge.env-dev {
+  background: rgba(79, 200, 130, 0.15);
+  color: #4fc882;
+}
+
+.env-badge.env-deprecated {
+  background: rgba(139, 147, 167, 0.15);
+  color: var(--text-dim);
+  text-decoration: line-through;
 }
 
 .checkbox-row {
@@ -168,6 +204,34 @@ button.primary {
   color: var(--text-dim);
 }
 
+.connection-detail {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.refresh-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(23, 29, 43, 0.5);
+}
+
+.auto-refresh-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.last-updated {
+  color: var(--text-dim);
+  font-size: 12px;
+  margin-left: auto;
+}
+
 .dashboard {
   padding: 24px 28px;
   display: flex;
@@ -246,20 +310,8 @@ button.primary {
   margin: 0;
 }
 
-.metric-picker {
-  display: flex;
-  gap: 6px;
-}
-
-.metric-picker button {
-  padding: 6px 10px;
-  font-size: 12px;
-}
-
-.metric-picker button.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: white;
+.panel-flagged {
+  border-color: rgba(255, 92, 92, 0.4);
 }
 
 .table-wrap {
@@ -308,37 +360,94 @@ tr.blocked-row {
   font-size: 13px;
 }
 
-.wait-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.wait-row {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.wait-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12.5px;
-}
-
-.wait-value {
-  color: var(--text-dim);
-}
-
 .wait-bar-track {
   height: 6px;
   background: #0f1420;
   border-radius: 3px;
   overflow: hidden;
+  margin-top: 8px;
 }
 
 .wait-bar-fill {
   height: 100%;
   background: var(--accent);
   border-radius: 3px;
+}
+
+.blocker-list, .longop-list, .deadlock-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.blocker-card, .longop-row {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: rgba(255, 92, 92, 0.04);
+}
+
+.blocker-head, .longop-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.blocker-session, .longop-command {
+  font-weight: 600;
+}
+
+.blocker-status {
+  color: var(--text-dim);
+}
+
+.blocker-status.flagged {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.blocker-count {
+  margin-left: auto;
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.blocker-detail {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.longop-percent {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.deadlock-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.deadlock-item summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.deadlock-xml {
+  margin-top: 10px;
+  padding: 10px;
+  background: #0f1420;
+  border-radius: 6px;
+  font-size: 11px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 300px;
+  overflow-y: auto;
 }
