@@ -333,6 +333,11 @@ button.primary {
   border-color: rgba(255, 92, 92, 0.4);
 }
 
+.panel-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
 .table-wrap {
   overflow-x: auto;
 }

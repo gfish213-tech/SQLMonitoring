@@ -5,6 +5,7 @@ export function IoLatencyPanel({ ioLatency }: { ioLatency: IoLatencyRow[] }) {
   return (
     <Section
       title="Disk / IO Latency"
+      badge={<span className="panel-hint">averaged since SQL Server restart</span>}
       isEmpty={ioLatency.length === 0}
       emptyText="No database file has elevated average read/write latency."
     >

@@ -154,7 +154,7 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   }
   lines.push("");
 
-  lines.push("## Disk / IO Latency");
+  lines.push("## Disk / IO Latency (averaged since SQL Server restart, not current)");
   if (data.ioLatency.length === 0) {
     lines.push("No file with elevated latency.");
   } else {

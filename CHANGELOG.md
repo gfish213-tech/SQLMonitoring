@@ -29,6 +29,10 @@
   proxy or mid-restart server returns non-JSON.
 - Diagnosis banner's CPU finding no longer reads "CPU pressure: CPU
   pressure: …".
+- The Disk/IO Latency panel (and the corresponding section of the Copy for
+  AI text) is now labeled "averaged since SQL Server restart" — that DMV is
+  cumulative, and a 1-second sample would be too noisy for quiet files, so
+  the caveat is stated instead of leaving the number to read as live.
 - `consumers.ts`'s per-session tempdb calculation had a paren mismatch that
   put the `* 8.0 / 1024` cast math inside `SUM(...)`'s own argument list,
   which made SQL Server parse it as a call to a nonexistent table function
