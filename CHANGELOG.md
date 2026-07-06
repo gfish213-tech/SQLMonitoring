@@ -13,10 +13,12 @@
 
 ### Added
 - `start.bat` at the repo root: a double-click launcher for end users who
-  don't want to touch a terminal. Installs dependencies on first run if
-  needed, runs `npm run serve` (build + start) in its own window, polls
-  `localhost:4000` until the server responds, then opens it in the default
-  browser automatically.
+  don't want to touch a terminal. Pulls the latest changes from git first
+  (auto-stashing and restoring any local tracked edits, like a user's own
+  additions to `server/config/servers.json`, around the pull), installs
+  dependencies, runs `npm run serve` (build + start) in its own window,
+  polls `localhost:4000` until the server responds, then opens it in the
+  default browser automatically.
 
 ## 1.2.0 — 2026-07-06
 
