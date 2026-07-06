@@ -8,11 +8,12 @@ import { getCurrentConsumers } from "../sql/consumers";
 import { getCurrentWaits } from "../sql/currentWaits";
 import { getPressureStats } from "../sql/pressure";
 import { getTempdbStats } from "../sql/tempdb";
-import { getLogSpaceUsage } from "../sql/logSpace";
+import { getLogSpaceUsage, getVlfCounts } from "../sql/logSpace";
 import { getIoLatency } from "../sql/ioLatency";
 import { getRecentAutogrowthEvents } from "../sql/autogrowth";
 import { getRecentDeadlocks } from "../sql/deadlocks";
 import { getVolumeSpace } from "../sql/volumeSpace";
+import { getIndexStats } from "../sql/indexStats";
 
 const router = Router();
 
@@ -40,22 +41,39 @@ function labeled<T>(panel: string, promise: Promise<T>): Promise<T> {
 
 router.get("/triage", async (_req, res) => {
   try {
-    const [overview, blocking, longOps, agentJobs, consumers, waits, pressure, tempdb, logSpace, ioLatency, autogrowth, deadlocks, volumeSpace] =
-      await Promise.all([
-        labeled("overview", getOverview()),
-        labeled("blocking", getBlockingChains()),
-        labeled("longOps", getLongRunningOps()),
-        labeled("agentJobs", getRunningAgentJobs()),
-        labeled("consumers", getCurrentConsumers()),
-        labeled("waits", getCurrentWaits()),
-        labeled("pressure", getPressureStats()),
-        labeled("tempdb", getTempdbStats()),
-        labeled("logSpace", getLogSpaceUsage()),
-        labeled("ioLatency", getIoLatency()),
-        labeled("autogrowth", getRecentAutogrowthEvents()),
-        labeled("deadlocks", getRecentDeadlocks()),
-        labeled("volumeSpace", getVolumeSpace()),
-      ]);
+    const [
+      overview,
+      blocking,
+      longOps,
+      agentJobs,
+      consumers,
+      waits,
+      pressure,
+      tempdb,
+      logSpace,
+      vlfCounts,
+      ioLatency,
+      autogrowth,
+      deadlocks,
+      volumeSpace,
+      indexStats,
+    ] = await Promise.all([
+      labeled("overview", getOverview()),
+      labeled("blocking", getBlockingChains()),
+      labeled("longOps", getLongRunningOps()),
+      labeled("agentJobs", getRunningAgentJobs()),
+      labeled("consumers", getCurrentConsumers()),
+      labeled("waits", getCurrentWaits()),
+      labeled("pressure", getPressureStats()),
+      labeled("tempdb", getTempdbStats()),
+      labeled("logSpace", getLogSpaceUsage()),
+      labeled("vlfCounts", getVlfCounts()),
+      labeled("ioLatency", getIoLatency()),
+      labeled("autogrowth", getRecentAutogrowthEvents()),
+      labeled("deadlocks", getRecentDeadlocks()),
+      labeled("volumeSpace", getVolumeSpace()),
+      labeled("indexStats", getIndexStats()),
+    ]);
 
     res.json({
       overview,
@@ -67,10 +85,12 @@ router.get("/triage", async (_req, res) => {
       pressure,
       tempdb,
       logSpace,
+      vlfCounts,
       ioLatency,
       autogrowth,
       deadlocks,
       volumeSpace,
+      indexStats,
     });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });

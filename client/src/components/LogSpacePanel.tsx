@@ -1,35 +1,68 @@
-import { Section } from "./Section";
-import type { LogSpaceRow } from "../types";
+import type { LogSpaceRow, VlfCountRow } from "../types";
 
-export function LogSpacePanel({ logSpace }: { logSpace: LogSpaceRow[] }) {
+// Two independent checks share this tab (log fullness and VLF fragmentation aren't correlated -
+// a mostly-empty log can still be badly fragmented from past growth), so this doesn't use the
+// shared Section wrapper: each half needs its own empty state regardless of the other's.
+export function LogSpacePanel({ logSpace, vlfCounts }: { logSpace: LogSpaceRow[]; vlfCounts: VlfCountRow[] }) {
+  const flagged = logSpace.length > 0 || vlfCounts.length > 0;
+
   return (
-    <Section
-      id="panel-logspace"
-      title="Transaction Log Space"
-      badge={<span className="panel-hint">only databases over 50% log used are shown</span>}
-      isEmpty={logSpace.length === 0}
-      emptyText="No database has a transaction log over 50% full."
-    >
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Database</th>
-              <th>Log Size</th>
-              <th>Used</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logSpace.map((row) => (
-              <tr key={row.databaseName} className={row.logUsedPercent > 90 ? "blocked-row" : ""}>
-                <td>{row.databaseName}</td>
-                <td>{row.logSizeMb.toLocaleString()} MB</td>
-                <td>{row.logUsedPercent}%</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <section id="panel-logspace" className={`panel ${flagged ? "panel-flagged" : ""}`}>
+      <div className="panel-header">
+        <h2>Transaction Log Space</h2>
+        <span className="panel-hint">only databases over 50% log used are shown</span>
       </div>
-    </Section>
+      {logSpace.length === 0 ? (
+        <div className="empty-panel">No database has a transaction log over 50% full.</div>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Database</th>
+                <th>Log Size</th>
+                <th>Used</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logSpace.map((row) => (
+                <tr key={row.databaseName} className={row.logUsedPercent > 90 ? "blocked-row" : ""}>
+                  <td>{row.databaseName}</td>
+                  <td>{row.logSizeMb.toLocaleString()} MB</td>
+                  <td>{row.logUsedPercent}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="panel-header" style={{ marginTop: 20 }}>
+        <h2>Virtual Log File (VLF) Count</h2>
+        <span className="panel-hint">only databases over 100 VLFs shown; requires SQL Server 2017+</span>
+      </div>
+      {vlfCounts.length === 0 ? (
+        <div className="empty-panel">No database has an excessive VLF count.</div>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Database</th>
+                <th>VLF Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vlfCounts.map((row) => (
+                <tr key={row.databaseName} className={row.vlfCount > 1000 ? "blocked-row" : ""}>
+                  <td>{row.databaseName}</td>
+                  <td>{row.vlfCount.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }

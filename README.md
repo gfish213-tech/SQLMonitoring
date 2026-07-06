@@ -99,9 +99,9 @@ a replacement for reading the panel it points to.
 
 Below that, a **tab strip** (pinned to the top while you scroll) switches
 between Overview, Blocking, Consumers, Backups, Agent Jobs, Waits, Log
-Space, IO Latency, Autogrowth, and Deadlocks — only one tab's content is
-shown at a time, and any tab with actual data gets a small red dot so it's
-obvious at a glance which ones are worth checking.
+Space, IO Latency, Autogrowth, Deadlocks, and Indexes — only one tab's
+content is shown at a time, and any tab with actual data gets a small red
+dot so it's obvious at a glance which ones are worth checking.
 
 Numbers and panels that could otherwise be misread carry a hint: stats with
 a small **ⓘ** explain what's being measured (hover it), and panels with a
@@ -120,14 +120,19 @@ detected") so ruling a cause in or out is a glance, not a read:
   CPU, not historical totals.
 - **Current Waits** — what's actually being waited on right now.
 - **CPU & Memory Pressure** — signal wait % (CPU pressure), page life
-  expectancy, buffer cache hit ratio, pending memory grants.
+  expectancy, buffer cache hit ratio, pending memory grants, and worker
+  thread/scheduler exhaustion (runnable tasks, worker queue).
 - **TempDB Contention** — space used, broken down into user objects,
   internal objects, and version store, plus top allocating sessions.
 - **Disk Volume Space** — every OS volume hosting a SQL Server file, with
   free space/%, so a drive running low shows up without remoting in to
   check Windows Explorer.
+- **Plan Cache / Ad-hoc Queries** — plan cache size and the ad-hoc share,
+  so an application sending raw SQL instead of parameterized queries shows
+  up as plan cache pollution competing with the buffer pool for memory.
 - **Transaction Log Space** — flags any database with a log over 50% full (a
-  full log halts writes entirely).
+  full log halts writes entirely), plus VLF (virtual log file) counts —
+  fragmentation that slows down recovery and failovers.
 - **Disk / IO Latency** — both the since-restart average and a live
   1-second-delta reading (plus IOPS and MB/s throughput) per file, so a
   current spike isn't hidden by good historical averages.
@@ -135,6 +140,8 @@ detected") so ruling a cause in or out is a glance, not a read:
   a common cause of sudden multi-second freezes.
 - **Recent Deadlocks** — pulled from the `system_health` extended-events
   session (raw deadlock graph, no setup required).
+- **Indexes** — top tables by scan count (a possible missing-index signal)
+  and unused indexes (written to but never read — pure write overhead).
 
 ## Notes
 

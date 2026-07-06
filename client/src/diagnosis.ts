@@ -84,6 +84,33 @@ export function diagnose(data: TriageData): Finding[] {
     });
   }
 
+  if (data.pressure.workQueueCount > 0) {
+    findings.push({
+      severity: "critical",
+      panel: "Worker threads",
+      title: `${data.pressure.workQueueCount} request${data.pressure.workQueueCount === 1 ? "" : "s"} waiting for a worker thread`,
+      detail: "SQL Server has run out of worker threads — new connections and requests can start timing out before they even get a chance to run.",
+    });
+  } else if (data.pressure.runnableTasksCount > 0) {
+    findings.push({
+      severity: "warning",
+      panel: "Worker threads",
+      title: `${data.pressure.runnableTasksCount} task${data.pressure.runnableTasksCount === 1 ? " is" : "s are"} waiting for a free CPU core`,
+      detail: "Tasks are ready to run but every scheduler is busy — true CPU/scheduler pressure right now, not just elevated wait times.",
+    });
+  }
+
+  if (data.overview.adhocPlanCachePercent != null && data.overview.adhocPlanCachePercent > 50 && data.overview.singleUseAdhocPlanMb > 256) {
+    findings.push({
+      severity: data.overview.singleUseAdhocPlanMb > 1024 ? "warning" : "info",
+      panel: "Plan cache",
+      title: `${data.overview.adhocPlanCachePercent.toFixed(0)}% of plan cache is ad-hoc plans`,
+      detail: `${data.overview.singleUseAdhocPlanCount.toLocaleString()} single-use ad-hoc plans (${
+        data.overview.singleUseAdhocPlanMb
+      } MB) are likely never reused — this memory is competing with the buffer pool (data cache), which can drag down Page Life Expectancy.`,
+    });
+  }
+
   if (data.tempdb.totalDataFileMb > 0) {
     const usedPercent = (data.tempdb.usedMb / data.tempdb.totalDataFileMb) * 100;
     if (usedPercent > 90) {
@@ -106,6 +133,17 @@ export function diagnose(data: TriageData): Finding[] {
       title: `${log.databaseName} log is ${log.logUsedPercent.toFixed(0)}% full`,
       detail: log.logUsedPercent > 90 ? "A full log halts all writes to this database until it's freed up." : "Worth checking before it fills up completely.",
     });
+  }
+
+  for (const vlf of data.vlfCounts) {
+    if (vlf.vlfCount > 1000) {
+      findings.push({
+        severity: "warning",
+        panel: "VLF count",
+        title: `${vlf.databaseName}'s log has ${vlf.vlfCount.toLocaleString()} virtual log files`,
+        detail: "A heavily fragmented log slows down recovery (restart, failover) and can slow log-heavy writes. Usually caused by repeated small autogrowth increments.",
+      });
+    }
   }
 
   for (const io of data.ioLatency) {

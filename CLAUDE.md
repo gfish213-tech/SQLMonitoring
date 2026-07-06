@@ -174,9 +174,9 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
   unconditionally.
 - `sql/*.ts` — one file per diagnostic check (`overview`, `blocking`,
   `longOps`, `agentJobs`, `consumers`, `currentWaits`, `pressure`, `tempdb`,
-  `logSpace`, `ioLatency`, `autogrowth`, `deadlocks`, `volumeSpace`), each
-  exporting a typed async function that runs against `getPool()`. Notable
-  ones:
+  `logSpace`, `ioLatency`, `autogrowth`, `deadlocks`, `volumeSpace`,
+  `indexStats`), each exporting a typed async function that runs against
+  `getPool()`. Notable ones:
   - `blocking.ts` — computes "lead blockers" (blockers not themselves
     waiting on anyone) in TypeScript from two queries, including blockers
     that are idle with an open transaction (`sys.dm_exec_sessions.status =
@@ -196,6 +196,13 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
     "optimize" the WAITFOR away, and exclude benign background waits (see
     `BENIGN_WAITS`, which must include `WAITFOR` itself) from any wait-stats
     delta. Page life expectancy is a true gauge and is read directly.
+    `overview.ts` also reports plan cache size and the ad-hoc/single-use
+    share from `sys.dm_exec_cached_plans` (plan cache pollution competes
+    with the buffer pool for memory, directly relevant to PLE above);
+    `pressure.ts` also reports `sys.dm_os_schedulers.runnable_tasks_count` /
+    `work_queue_count` (true worker/scheduler exhaustion — distinct from,
+    and doesn't need, the 1-second sampling the wait-time-based signal wait
+    % does).
   - `agentJobs.ts` — matches a running job to its live session by computing
     the job_id-as-hex string *in SQL* (`CAST(job_id AS varbinary(16))`,
     style 2) and matching it against `sys.dm_exec_sessions.program_name`.
@@ -229,6 +236,24 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
     thresholded down to "abnormal only" (see below) — it's rendered in the
     Overview tab, not a suspects tab, and every volume's headroom is useful
     context, not just the ones already critical.
+  - `logSpace.ts` also exports `getVlfCounts()` — VLF (virtual log file)
+    fragmentation is unrelated to how full a log currently is (a mostly-
+    empty log can still be badly fragmented from past growth), so it's a
+    separate check with its own >100-VLF threshold, not merged into the log
+    fullness query. Requires `sys.dm_db_log_info` (SQL Server 2017+);
+    wrapped in `.catch()` to an empty array on older versions.
+  - `indexStats.ts` — `sys.dm_db_index_usage_stats` is server-wide (every
+    database's stats from any connection, no per-database looping) and
+    `OBJECT_NAME(object_id, database_id)` resolves table names cross-database
+    the same way, so "Top Tables by Scans" needs nothing special. Index
+    *names*, unlike table names, live in `sys.indexes` — a per-current-
+    database catalog view — so resolving them across every other database
+    on the server would need dynamic SQL executed once per database (the
+    standard DBA-script pattern for this). This app deliberately doesn't do
+    that for reliability across arbitrary server configurations; "Unused
+    Indexes" shows `index_id` instead of a resolved name as a documented
+    trade-off, not an oversight. Both queries reset on restart or index
+    rebuild, same "since restart" caveat as `ioLatency.ts`'s average.
   - `autogrowth.ts`, `deadlocks.ts` — read from the default trace / the
     `system_health` extended-events session respectively, both of which are
     on by default but can be disabled by policy; both catch and return an
@@ -268,11 +293,15 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
   scoring with no server round-trip (all the data it needs is already in the
   one combined `TriageData` payload). Each panel's data is checked against
   fixed thresholds (e.g. blocking wait time/count, signal wait % > 25/40,
-  log/tempdb % full, I/O latency ms, volume free % < 15/5) and turned into
+  log/tempdb % full, I/O latency ms, volume free % < 15/5, VLF count >
+  1000, ad-hoc plan cache % > 50 with > 256MB single-use) and turned into
   zero or more `Finding`s with a `severity` of `critical`/`warning`/`info`;
   results are sorted critical-first (stable sort, so ties keep panel-scan
-  order: blocking, long ops, agent jobs, pressure, tempdb, log space, I/O
-  latency, disk space, autogrowth, deadlocks). The I/O latency finding
+  order: blocking, long ops, agent jobs, pressure/worker-threads/plan-cache,
+  tempdb, log space/VLF count, I/O latency, disk space, autogrowth,
+  deadlocks). `work_queue_count > 0` (SQL Server out of worker threads) is
+  always critical and takes priority over `runnable_tasks_count > 0`
+  (waiting for a free core) in the same refresh. The I/O latency finding
   checks the worse of the since-restart average and the 1-second-delta
   current reading, and says so ("Worse right now than its since-restart
   average...") when the current reading is what actually crossed the
@@ -295,8 +324,8 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
   only Diagnosis and the sticky toolbar are always visible; everything
   else (Overview+Pressure+TempDB+VolumeSpace together as the "Overview"
   tab, then one tab each for Blocking, Consumers, Backups, Agent Jobs,
-  Waits, Log Space, IO Latency, Autogrowth, Deadlocks) is tab-switched, not
-  stacked on one
+  Waits, Log Space (+VLF counts), IO Latency, Autogrowth, Deadlocks,
+  Indexes) is tab-switched, not stacked on one
   long page. `buildTabs(data)` is the single place that maps `TriageData`
   to tab definitions — add a new tab there (and to `DashboardTab` in
   `types.ts`) rather than hardcoding another panel into the JSX. Each tab

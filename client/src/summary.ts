@@ -46,6 +46,14 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   lines.push(field("Page Life Expectancy", data.overview.pageLifeExpectancy != null ? `${data.overview.pageLifeExpectancy}s` : null));
   lines.push(field("Batch Requests/sec", data.overview.batchRequestsPerSec));
   lines.push(field("Server Start Time", new Date(data.overview.sqlServerStartTime).toLocaleString()));
+  lines.push(field("Plan Cache Size", `${data.overview.planCacheMb} MB`));
+  lines.push(field("Ad-hoc Plans", data.overview.adhocPlanCachePercent != null ? `${data.overview.adhocPlanCachePercent}%` : null));
+  lines.push(
+    field(
+      "Single-Use Ad-hoc Plans",
+      `${data.overview.singleUseAdhocPlanCount} (${data.overview.singleUseAdhocPlanMb} MB)`
+    )
+  );
   lines.push("");
 
   lines.push("## Disk Volume Space");
@@ -139,6 +147,8 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   lines.push(field("Page Life Expectancy", data.pressure.pageLifeExpectancy != null ? `${data.pressure.pageLifeExpectancy}s` : null));
   lines.push(field("Buffer Cache Hit Ratio", data.pressure.bufferCacheHitRatio != null ? `${data.pressure.bufferCacheHitRatio}%` : null));
   lines.push(field("Pending Memory Grants", data.pressure.pendingMemoryGrants));
+  lines.push(field("Runnable Tasks", data.pressure.runnableTasksCount));
+  lines.push(field("Worker Queue", data.pressure.workQueueCount));
   lines.push("");
 
   lines.push("## TempDB Contention");
@@ -162,6 +172,16 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   } else {
     for (const l of data.logSpace) {
       lines.push(`- ${l.databaseName}: ${l.logUsedPercent}% used of ${l.logSizeMb} MB`);
+    }
+  }
+  lines.push("");
+
+  lines.push("## Virtual Log File (VLF) Counts (only databases over 100 VLFs shown; requires SQL Server 2017+)");
+  if (data.vlfCounts.length === 0) {
+    lines.push("No database has an excessive VLF count.");
+  } else {
+    for (const v of data.vlfCounts) {
+      lines.push(`- ${v.databaseName}: ${v.vlfCount} VLFs`);
     }
   }
   lines.push("");
@@ -203,6 +223,26 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
       lines.push("```xml");
       lines.push(d.xml);
       lines.push("```");
+    }
+  }
+  lines.push("");
+
+  lines.push("## Top Tables by Scans (since last restart; index_id shown instead of index name)");
+  if (data.indexStats.topScannedTables.length === 0) {
+    lines.push("No table has significant scan activity.");
+  } else {
+    for (const t of data.indexStats.topScannedTables) {
+      lines.push(`- ${t.databaseName}.${t.tableName}: ${t.totalScans} scans, ${t.totalSeeks} seeks, ${t.totalLookups} lookups`);
+    }
+  }
+  lines.push("");
+
+  lines.push("## Unused Indexes (since last restart; written to but never read)");
+  if (data.indexStats.unusedIndexes.length === 0) {
+    lines.push("No index has write activity with zero reads.");
+  } else {
+    for (const idx of data.indexStats.unusedIndexes) {
+      lines.push(`- ${idx.databaseName}.${idx.tableName} (index_id ${idx.indexId}): ${idx.totalWrites} writes, 0 reads`);
     }
   }
 

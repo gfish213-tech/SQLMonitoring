@@ -31,6 +31,18 @@ export function PressurePanel({ pressure }: { pressure: PressureStats }) {
           tone={pressure.pendingMemoryGrants > 0 ? "danger" : undefined}
           hint="Queries currently waiting for a memory grant before they can even start running. Any value above 0 is worth investigating."
         />
+        <StatCard
+          label="Runnable Tasks"
+          value={String(pressure.runnableTasksCount)}
+          tone={pressure.runnableTasksCount > 0 ? "warning" : undefined}
+          hint="Tasks ready to run but waiting for a free CPU core, right now. Non-zero means true scheduler/CPU pressure, distinct from Signal Wait % (which needs a sample window to compute)."
+        />
+        <StatCard
+          label="Worker Queue"
+          value={String(pressure.workQueueCount)}
+          tone={pressure.workQueueCount > 0 ? "danger" : undefined}
+          hint="Requests waiting for a worker thread before they can even be assigned one. Non-zero means SQL Server has run out of worker threads - new connections may start timing out."
+        />
       </div>
     </section>
   );

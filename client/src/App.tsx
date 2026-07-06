@@ -15,6 +15,7 @@ import { LogSpacePanel } from "./components/LogSpacePanel";
 import { IoLatencyPanel } from "./components/IoLatencyPanel";
 import { AutogrowthPanel } from "./components/AutogrowthPanel";
 import { DeadlocksPanel } from "./components/DeadlocksPanel";
+import { IndexStatsPanel } from "./components/IndexStatsPanel";
 import { useTriage } from "./hooks/useTriage";
 import { buildSummaryText } from "./summary";
 import type { ConnectionMeta, DashboardTab, TriageData } from "./types";
@@ -53,10 +54,21 @@ function buildTabs(data: TriageData): { key: DashboardTab; label: string; hasDat
     { key: "longops", label: "Backups", hasData: data.longOps.length > 0, node: <LongOpsPanel longOps={data.longOps} /> },
     { key: "agentjobs", label: "Agent Jobs", hasData: data.agentJobs.length > 0, node: <AgentJobsPanel agentJobs={data.agentJobs} /> },
     { key: "waits", label: "Waits", hasData: data.waits.length > 0, node: <WaitsPanel waits={data.waits} /> },
-    { key: "logspace", label: "Log Space", hasData: data.logSpace.length > 0, node: <LogSpacePanel logSpace={data.logSpace} /> },
+    {
+      key: "logspace",
+      label: "Log Space",
+      hasData: data.logSpace.length > 0 || data.vlfCounts.length > 0,
+      node: <LogSpacePanel logSpace={data.logSpace} vlfCounts={data.vlfCounts} />,
+    },
     { key: "iolatency", label: "IO Latency", hasData: data.ioLatency.length > 0, node: <IoLatencyPanel ioLatency={data.ioLatency} /> },
     { key: "autogrowth", label: "Autogrowth", hasData: data.autogrowth.length > 0, node: <AutogrowthPanel autogrowth={data.autogrowth} /> },
     { key: "deadlocks", label: "Deadlocks", hasData: data.deadlocks.length > 0, node: <DeadlocksPanel deadlocks={data.deadlocks} /> },
+    {
+      key: "indexes",
+      label: "Indexes",
+      hasData: data.indexStats.topScannedTables.length > 0 || data.indexStats.unusedIndexes.length > 0,
+      node: <IndexStatsPanel indexStats={data.indexStats} />,
+    },
   ];
 }
 

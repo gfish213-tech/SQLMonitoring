@@ -26,6 +26,28 @@
   SQL Server file, with free space/%, via `sys.dm_os_volume_stats` — no
   more remoting in to check Windows Explorer for free space. Flagged in
   the diagnosis banner under 15%/5% free.
+- **Plan cache / ad-hoc query stats** (Overview tab): total plan cache
+  size, the share that's ad-hoc (unparameterized SQL, as opposed to
+  stored procs/`sp_executesql`), and single-use ad-hoc plan count/size —
+  plan cache pollution competes with the buffer pool for memory and can
+  drag down Page Life Expectancy. Flagged when ad-hoc share is over 50%
+  and single-use plans exceed 256 MB.
+- **Worker thread / scheduler exhaustion** (Overview tab, CPU & Memory
+  Pressure): `runnable_tasks_count` (tasks ready to run but waiting for a
+  free CPU core — true scheduler pressure, no sampling delay needed) and
+  `work_queue_count` (SQL Server has run out of worker threads entirely —
+  always a critical finding when non-zero) from `sys.dm_os_schedulers`.
+- **VLF (virtual log file) counts** (Log Space tab): flags any database
+  with over 100 VLFs via `sys.dm_db_log_info` (SQL Server 2017+) — a
+  heavily fragmented log slows down recovery/failover and log-heavy
+  writes, independently of how full the log currently is.
+- **Index usage stats** (new Indexes tab): "Top Tables by Scans" (a high
+  scan count relative to seeks can mean a missing index) and "Unused
+  Indexes" (written to but never read — pure write overhead) from
+  `sys.dm_db_index_usage_stats`. Shows `index_id` rather than a resolved
+  index name — cross-database index name resolution needs per-database
+  dynamic SQL, which this app avoids for reliability; table names still
+  resolve correctly cross-database via `OBJECT_NAME(id, db_id)`.
 - **Committed `allowScripts` approval** in `server/package.json` (for
   `msnodesqlv8@5.2.1` and `esbuild@0.28.1`) and `client/package.json` (for
   `esbuild@0.25.12`). Some environments (e.g. a corporate npm policy) gate

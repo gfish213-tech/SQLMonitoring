@@ -5,6 +5,8 @@ export interface PressureStats {
   pageLifeExpectancy: number | null;
   bufferCacheHitRatio: number | null;
   pendingMemoryGrants: number;
+  runnableTasksCount: number;
+  workQueueCount: number;
 }
 
 // Background/housekeeping waits that accumulate constantly whether or not anything is wrong.
@@ -32,7 +34,7 @@ const BENIGN_WAITS = `
 export async function getPressureStats(): Promise<PressureStats> {
   const pool = getPool();
 
-  const [sampled, memoryGrants] = await Promise.all([
+  const [sampled, memoryGrants, schedulers] = await Promise.all([
     pool.request().query(`
       DECLARE @signal1 BIGINT, @total1 BIGINT, @hit1 BIGINT, @base1 BIGINT;
 
@@ -63,6 +65,17 @@ export async function getPressureStats(): Promise<PressureStats> {
       FROM sys.dm_exec_query_memory_grants
       WHERE grant_time IS NULL
     `),
+    // runnable_tasks_count > 0 means a task is ready to run but waiting for a CPU core - true
+    // worker/scheduler pressure, distinct from signal_wait_percent (which is wait-time-based
+    // and needs a sample window). work_queue_count > 0 is more serious: SQL Server has run out
+    // of worker threads and new requests are queuing before they even get a worker assigned.
+    pool.request().query(`
+      SELECT
+        SUM(runnable_tasks_count) AS runnable_tasks_count,
+        SUM(work_queue_count) AS work_queue_count
+      FROM sys.dm_os_schedulers
+      WHERE status = 'VISIBLE ONLINE'
+    `),
   ]);
 
   const row = sampled.recordset[0] as {
@@ -85,10 +98,14 @@ export async function getPressureStats(): Promise<PressureStats> {
       ? Math.min(100, Math.round((row.hit_delta / row.base_delta) * 10000) / 100)
       : null;
 
+  const s = schedulers.recordset[0] as { runnable_tasks_count: number | null; work_queue_count: number | null };
+
   return {
     signalWaitPercent,
     pageLifeExpectancy: row.page_life_expectancy,
     bufferCacheHitRatio,
     pendingMemoryGrants: (memoryGrants.recordset[0] as { pending_grants: number }).pending_grants,
+    runnableTasksCount: s.runnable_tasks_count ?? 0,
+    workQueueCount: s.work_queue_count ?? 0,
   };
 }

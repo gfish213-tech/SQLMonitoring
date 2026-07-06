@@ -9,6 +9,11 @@ export interface OverviewStats {
   bufferCacheHitRatio: number | null;
   pageLifeExpectancy: number | null;
   batchRequestsPerSec: number | null;
+  planCacheMb: number;
+  adhocPlanCacheMb: number;
+  adhocPlanCachePercent: number | null;
+  singleUseAdhocPlanCount: number;
+  singleUseAdhocPlanMb: number;
 }
 
 export async function getOverview(): Promise<OverviewStats> {
@@ -20,7 +25,7 @@ export async function getOverview(): Promise<OverviewStats> {
   // second apart, and report the delta. Page life expectancy is a true gauge and needs no
   // sampling. The 1s WAITFOR runs in parallel with the other panels' queries, so it adds ~1s
   // to the combined refresh, not per-panel.
-  const [sysInfo, sessionCounts, counters] = await Promise.all([
+  const [sysInfo, sessionCounts, counters, planCache] = await Promise.all([
     pool.request().query(`
       SELECT cpu_count, sqlserver_start_time
       FROM sys.dm_os_sys_info
@@ -51,6 +56,17 @@ export async function getOverview(): Promise<OverviewStats> {
       FROM sys.dm_os_performance_counters
       WHERE counter_name IN ('Batch Requests/sec', 'Buffer cache hit ratio', 'Buffer cache hit ratio base', 'Page life expectancy');
     `),
+    // Ad-hoc, single-use plans (unparameterized SQL strings, not sp_executesql/stored procs)
+    // pollute the plan cache with plans that will never be reused, stealing memory that could
+    // otherwise hold data pages (directly competing with page life expectancy above).
+    pool.request().query(`
+      SELECT
+        SUM(CAST(size_in_bytes AS BIGINT)) AS total_bytes,
+        SUM(CASE WHEN objtype = 'Adhoc' THEN CAST(size_in_bytes AS BIGINT) ELSE 0 END) AS adhoc_bytes,
+        SUM(CASE WHEN objtype = 'Adhoc' AND usecounts = 1 THEN CAST(size_in_bytes AS BIGINT) ELSE 0 END) AS single_use_adhoc_bytes,
+        SUM(CASE WHEN objtype = 'Adhoc' AND usecounts = 1 THEN 1 ELSE 0 END) AS single_use_adhoc_count
+      FROM sys.dm_exec_cached_plans
+    `),
   ]);
 
   const c = counters.recordset[0] as {
@@ -67,6 +83,15 @@ export async function getOverview(): Promise<OverviewStats> {
       ? Math.min(100, Math.round((c.hit_delta / c.base_delta) * 10000) / 100)
       : null;
 
+  const p = planCache.recordset[0] as {
+    total_bytes: number | null;
+    adhoc_bytes: number | null;
+    single_use_adhoc_bytes: number | null;
+    single_use_adhoc_count: number | null;
+  };
+  const totalBytes = p.total_bytes ?? 0;
+  const adhocBytes = p.adhoc_bytes ?? 0;
+
   return {
     cpuCount: sysInfo.recordset[0].cpu_count,
     sqlServerStartTime: sysInfo.recordset[0].sqlserver_start_time,
@@ -76,5 +101,10 @@ export async function getOverview(): Promise<OverviewStats> {
     bufferCacheHitRatio,
     pageLifeExpectancy: c.page_life_expectancy,
     batchRequestsPerSec: c.batch_requests_per_sec !== null && c.batch_requests_per_sec >= 0 ? c.batch_requests_per_sec : null,
+    planCacheMb: Math.round((totalBytes / 1024 / 1024) * 100) / 100,
+    adhocPlanCacheMb: Math.round((adhocBytes / 1024 / 1024) * 100) / 100,
+    adhocPlanCachePercent: totalBytes > 0 ? Math.round((adhocBytes / totalBytes) * 10000) / 100 : null,
+    singleUseAdhocPlanCount: p.single_use_adhoc_count ?? 0,
+    singleUseAdhocPlanMb: Math.round(((p.single_use_adhoc_bytes ?? 0) / 1024 / 1024) * 100) / 100,
   };
 }

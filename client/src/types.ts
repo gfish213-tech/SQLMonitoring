@@ -22,6 +22,11 @@ export interface OverviewStats {
   bufferCacheHitRatio: number | null;
   pageLifeExpectancy: number | null;
   batchRequestsPerSec: number | null;
+  planCacheMb: number;
+  adhocPlanCacheMb: number;
+  adhocPlanCachePercent: number | null;
+  singleUseAdhocPlanCount: number;
+  singleUseAdhocPlanMb: number;
 }
 
 export interface BlockedSession {
@@ -101,6 +106,8 @@ export interface PressureStats {
   pageLifeExpectancy: number | null;
   bufferCacheHitRatio: number | null;
   pendingMemoryGrants: number;
+  runnableTasksCount: number;
+  workQueueCount: number;
 }
 
 export interface TempdbAllocator {
@@ -123,6 +130,11 @@ export interface LogSpaceRow {
   databaseName: string;
   logSizeMb: number;
   logUsedPercent: number;
+}
+
+export interface VlfCountRow {
+  databaseName: string;
+  vlfCount: number;
 }
 
 export interface IoLatencyRow {
@@ -159,6 +171,26 @@ export interface VolumeSpaceRow {
   freePercent: number;
 }
 
+export interface TopScannedTable {
+  databaseName: string;
+  tableName: string;
+  totalScans: number;
+  totalSeeks: number;
+  totalLookups: number;
+}
+
+export interface UnusedIndex {
+  databaseName: string;
+  tableName: string;
+  indexId: number;
+  totalWrites: number;
+}
+
+export interface IndexStats {
+  topScannedTables: TopScannedTable[];
+  unusedIndexes: UnusedIndex[];
+}
+
 // The dashboard's tab keys - shared between App.tsx (which owns the active tab) and
 // DiagnosisSummary.tsx (which maps a Finding's panel name to a tab for its "View details" link).
 export type DashboardTab =
@@ -171,7 +203,8 @@ export type DashboardTab =
   | "logspace"
   | "iolatency"
   | "autogrowth"
-  | "deadlocks";
+  | "deadlocks"
+  | "indexes";
 
 export interface TriageData {
   overview: OverviewStats;
@@ -183,8 +216,10 @@ export interface TriageData {
   pressure: PressureStats;
   tempdb: TempdbStats;
   logSpace: LogSpaceRow[];
+  vlfCounts: VlfCountRow[];
   ioLatency: IoLatencyRow[];
   autogrowth: AutogrowthEvent[];
   deadlocks: DeadlockEvent[];
   volumeSpace: VolumeSpaceRow[];
+  indexStats: IndexStats;
 }

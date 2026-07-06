@@ -116,19 +116,20 @@ crossed a concerning line. Treat it as a starting point, not a final verdict
 — the panel it points to still has the full detail.
 
 Below that is a **tab strip** — Overview, Blocking, Consumers, Backups,
-Agent Jobs, Waits, Log Space, IO Latency, Autogrowth, Deadlocks — that stays
-pinned to the top of the screen as you scroll. Only one tab's content shows
-at a time; any tab with actual data gets a small red dot, so you can tell at
-a glance which ones are worth clicking into without checking all ten. Hover
-the small **ⓘ** next to any stat for a one-line explanation of what it means
-and how it's measured; panels with a filtering rule (e.g. "top 20 by CPU
-time") show that rule in their header at all times, not only when the panel
-happens to be empty.
+Agent Jobs, Waits, Log Space, IO Latency, Autogrowth, Deadlocks, Indexes —
+that stays pinned to the top of the screen as you scroll. Only one tab's
+content shows at a time; any tab with actual data gets a small red dot, so
+you can tell at a glance which ones are worth clicking into without checking
+all eleven. Hover the small **ⓘ** next to any stat for a one-line explanation
+of what it means and how it's measured; panels with a filtering rule (e.g.
+"top 20 by CPU time") show that rule in their header at all times, not only
+when the panel happens to be empty.
 
 Every panel states plainly when there's nothing to report, so ruling a cause
 in or out is a glance. The **Overview** tab combines the always-on server
-vitals — CPU/session/request counts, CPU & Memory Pressure, TempDB
-Contention, and Disk Volume Space — and the rest are one tab each:
+vitals — CPU/session/request counts, CPU & Memory Pressure (including
+worker thread/scheduler exhaustion), TempDB Contention, Disk Volume Space,
+and Plan Cache/Ad-hoc query stats — and the rest are one tab each:
 
 - **Blocking & Long Transactions** — who's blocking whom, including a session
   sitting idle with an open transaction (a common, easy-to-miss cause).
@@ -140,18 +141,32 @@ Contention, and Disk Volume Space — and the rest are one tab each:
   a heavy scan shows up here even if it isn't the top CPU consumer).
 - **Current Waits** — what's actually being waited on right now.
 - **CPU & Memory Pressure** — signal wait % (CPU pressure indicator), page
-  life expectancy, buffer cache hit ratio, pending memory grants.
+  life expectancy, buffer cache hit ratio, pending memory grants, runnable
+  tasks and worker queue (worker thread exhaustion — always critical if
+  non-zero).
 - **TempDB Contention** — space used, broken down into user objects,
   internal objects, and version store, plus which sessions are using the
   most.
 - **Disk Volume Space** — every drive hosting a SQL Server file, with free
   space/% — flagged red under 10% free.
-- **Transaction Log Space** — flags any database with its log over 50% full.
+- **Plan Cache / Ad-hoc Queries** — plan cache size, ad-hoc share, and
+  single-use ad-hoc plan count/size — a high share means an application is
+  sending raw SQL strings instead of parameterized queries or stored
+  procedures, wasting memory that competes with the buffer pool.
+- **Transaction Log Space** — flags any database with its log over 50% full,
+  plus a separate VLF (virtual log file) count check — a fragmented log
+  (over 100 VLFs) slows recovery and failovers, independent of how full
+  the log currently is (requires SQL Server 2017+).
 - **Disk / IO Latency** — both the since-restart average and a live
   1-second reading (plus IOPS/MB per second) per file; flagged if either
   one is elevated, so a current spike isn't hidden by good history.
 - **Recent Auto-Growth Events** — file growth events in the last 24 hours.
 - **Recent Deadlocks** — raw deadlock graphs from `system_health`, expandable.
+- **Indexes** — "Top Tables by Scans" (a high scan count relative to seeks
+  can mean a missing index) and "Unused Indexes" (written to but never
+  read — pure overhead on every insert/update). Shows the table name and
+  index ID rather than the index's name, to keep this reliable across
+  arbitrary multi-database servers without per-database dynamic SQL.
 
 Click **Switch Server** in the header to disconnect and pick a different one.
 
