@@ -2,7 +2,30 @@
 
 ## Unreleased
 
+### Fixed
+- **TempDB "Used" showed `null MB`**: the query read tempdb's file names
+  from `tempdb.sys.database_files` but then called `FILEPROPERTY(name,
+  'SpaceUsed')`, which evaluates against whatever database the connection
+  is *currently* in (this app defaults to `master`), not the database
+  implied by the table it's reading from — no file in `master` matched
+  those names, so it silently returned `NULL` for every row. Replaced with
+  `tempdb.sys.dm_db_file_space_usage`, which is genuinely queryable via a
+  3-part name from any database, and which also gives a proper breakdown
+  into **User Objects**, **Internal Objects**, and **Version Store**
+  instead of one opaque "Used" number.
+
 ### Added
+- **Current (1-second-delta) I/O latency, IOPS, and throughput** alongside
+  the existing since-restart average in Disk / IO Latency: the average
+  alone is diluted by however long the server's been up, so a file that
+  started stalling minutes ago barely moves a lifetime average on a
+  server that's been up for months. A file is now flagged if *either*
+  figure is elevated, and the diagnosis banner says so explicitly when the
+  current reading — not the average — is what crossed the threshold.
+- **Disk Volume Space** panel (Overview tab): every OS volume hosting a
+  SQL Server file, with free space/%, via `sys.dm_os_volume_stats` — no
+  more remoting in to check Windows Explorer for free space. Flagged in
+  the diagnosis banner under 15%/5% free.
 - **Committed `allowScripts` approval** in `server/package.json` (for
   `msnodesqlv8@5.2.1` and `esbuild@0.28.1`) and `client/package.json` (for
   `esbuild@0.25.12`). Some environments (e.g. a corporate npm policy) gate

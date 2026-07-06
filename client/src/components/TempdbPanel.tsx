@@ -15,13 +15,25 @@ export function TempdbPanel({ tempdb }: { tempdb: TempdbStats }) {
           label="Used"
           value={`${usedPercent}%`}
           tone={usedPercent > 80 ? "danger" : usedPercent > 60 ? "warning" : undefined}
-          hint="Includes user objects, internal objects (worktables, sort/hash spill space), and the version store."
+          hint="User objects + internal objects + version store, broken down below."
         />
         <StatCard label="Free" value={`${tempdb.freeMb.toLocaleString()} MB`} />
+      </div>
+      <div className="stat-grid" style={{ marginTop: 14 }}>
+        <StatCard
+          label="User Objects"
+          value={`${tempdb.userObjectsMb.toLocaleString()} MB`}
+          hint="Actual #temp tables and table variables created by user queries."
+        />
+        <StatCard
+          label="Internal Objects"
+          value={`${tempdb.internalObjectsMb.toLocaleString()} MB`}
+          hint="Sort runs, hash joins, and spooling tables created by the query optimizer to execute a query plan."
+        />
         <StatCard
           label="Version Store"
           value={`${tempdb.versionStoreMb.toLocaleString()} MB`}
-          hint="Space used by row versioning (snapshot isolation, triggers, MARS). Always reads 0 on SQL Server versions older than 2016 SP2/2017, even if version store usage exists there."
+          hint="Row versions used by read committed snapshot isolation (RCSI), snapshot isolation, triggers, or MARS."
         />
       </div>
       {tempdb.topAllocators.length > 0 && (

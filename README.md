@@ -121,10 +121,16 @@ detected") so ruling a cause in or out is a glance, not a read:
 - **Current Waits** — what's actually being waited on right now.
 - **CPU & Memory Pressure** — signal wait % (CPU pressure), page life
   expectancy, buffer cache hit ratio, pending memory grants.
-- **TempDB Contention** — space used and top allocating sessions.
+- **TempDB Contention** — space used, broken down into user objects,
+  internal objects, and version store, plus top allocating sessions.
+- **Disk Volume Space** — every OS volume hosting a SQL Server file, with
+  free space/%, so a drive running low shows up without remoting in to
+  check Windows Explorer.
 - **Transaction Log Space** — flags any database with a log over 50% full (a
   full log halts writes entirely).
-- **Disk / IO Latency** — per-file average read/write latency where elevated.
+- **Disk / IO Latency** — both the since-restart average and a live
+  1-second-delta reading (plus IOPS and MB/s throughput) per file, so a
+  current spike isn't hidden by good historical averages.
 - **Recent Auto-Growth Events** — data/log file growth events in the last 24h,
   a common cause of sudden multi-second freezes.
 - **Recent Deadlocks** — pulled from the `system_health` extended-events

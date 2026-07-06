@@ -128,7 +128,7 @@ happens to be empty.
 Every panel states plainly when there's nothing to report, so ruling a cause
 in or out is a glance. The **Overview** tab combines the always-on server
 vitals — CPU/session/request counts, CPU & Memory Pressure, TempDB
-Contention — and the rest are one tab each:
+Contention, and Disk Volume Space — and the rest are one tab each:
 
 - **Blocking & Long Transactions** — who's blocking whom, including a session
   sitting idle with an open transaction (a common, easy-to-miss cause).
@@ -136,13 +136,20 @@ Contention — and the rest are one tab each:
   progress with ETA.
 - **Running Agent Jobs** — currently-executing jobs with live CPU/IO.
 - **Top Resource Consumers (Right Now)** — active requests by current CPU,
-  not historical totals.
+  not historical totals (includes each session's logical reads/writes, so
+  a heavy scan shows up here even if it isn't the top CPU consumer).
 - **Current Waits** — what's actually being waited on right now.
 - **CPU & Memory Pressure** — signal wait % (CPU pressure indicator), page
   life expectancy, buffer cache hit ratio, pending memory grants.
-- **TempDB Contention** — space used and which sessions are using the most.
+- **TempDB Contention** — space used, broken down into user objects,
+  internal objects, and version store, plus which sessions are using the
+  most.
+- **Disk Volume Space** — every drive hosting a SQL Server file, with free
+  space/% — flagged red under 10% free.
 - **Transaction Log Space** — flags any database with its log over 50% full.
-- **Disk / IO Latency** — per-file latency where it's elevated.
+- **Disk / IO Latency** — both the since-restart average and a live
+  1-second reading (plus IOPS/MB per second) per file; flagged if either
+  one is elevated, so a current spike isn't hidden by good history.
 - **Recent Auto-Growth Events** — file growth events in the last 24 hours.
 - **Recent Deadlocks** — raw deadlock graphs from `system_health`, expandable.
 

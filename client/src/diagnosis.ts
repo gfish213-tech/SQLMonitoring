@@ -109,13 +109,29 @@ export function diagnose(data: TriageData): Finding[] {
   }
 
   for (const io of data.ioLatency) {
-    const worst = Math.max(io.avgReadLatencyMs ?? 0, io.avgWriteLatencyMs ?? 0);
+    const worstAvg = Math.max(io.avgReadLatencyMs ?? 0, io.avgWriteLatencyMs ?? 0);
+    const worstCurrent = Math.max(io.currentReadLatencyMs ?? 0, io.currentWriteLatencyMs ?? 0);
+    const worst = Math.max(worstAvg, worstCurrent);
+    const currentlyWorse = worstCurrent > worstAvg;
     findings.push({
       severity: worst > 100 ? "critical" : "warning",
       panel: "Disk latency",
-      title: `${io.databaseName}: ${worst.toFixed(0)}ms average I/O latency`,
-      detail: `${io.fileName} — normal is under ~15ms; this can cause broad slowness for anything touching this file.`,
+      title: `${io.databaseName}: ${worst.toFixed(0)}ms ${currentlyWorse ? "in the last ~1s" : "average"} I/O latency`,
+      detail: `${io.fileName} — normal is under ~15ms; this can cause broad slowness for anything touching this file.${
+        currentlyWorse ? " Worse right now than its since-restart average, so this is an active spike, not old history." : ""
+      }`,
     });
+  }
+
+  for (const vol of data.volumeSpace) {
+    if (vol.freePercent < 15) {
+      findings.push({
+        severity: vol.freePercent < 5 ? "critical" : "warning",
+        panel: "Disk space",
+        title: `${vol.volumeMountPoint} has only ${vol.freePercent.toFixed(1)}% free space left`,
+        detail: `${vol.freeGb} GB free of ${vol.totalGb} GB. Running out of space prevents data/log files from growing at all, which can halt the databases on this volume entirely.`,
+      });
+    }
   }
 
   for (const ev of data.autogrowth) {

@@ -113,6 +113,8 @@ export interface TempdbStats {
   totalDataFileMb: number;
   usedMb: number;
   freeMb: number;
+  userObjectsMb: number;
+  internalObjectsMb: number;
   versionStoreMb: number;
   topAllocators: TempdbAllocator[];
 }
@@ -128,6 +130,12 @@ export interface IoLatencyRow {
   fileName: string;
   avgReadLatencyMs: number | null;
   avgWriteLatencyMs: number | null;
+  currentReadLatencyMs: number | null;
+  currentWriteLatencyMs: number | null;
+  readIops: number | null;
+  writeIops: number | null;
+  readThroughputMBps: number | null;
+  writeThroughputMBps: number | null;
 }
 
 export interface AutogrowthEvent {
@@ -141,6 +149,14 @@ export interface AutogrowthEvent {
 export interface DeadlockEvent {
   timestamp: string;
   xml: string;
+}
+
+export interface VolumeSpaceRow {
+  volumeMountPoint: string;
+  logicalVolumeName: string | null;
+  totalGb: number;
+  freeGb: number;
+  freePercent: number;
 }
 
 // The dashboard's tab keys - shared between App.tsx (which owns the active tab) and
@@ -170,4 +186,5 @@ export interface TriageData {
   ioLatency: IoLatencyRow[];
   autogrowth: AutogrowthEvent[];
   deadlocks: DeadlockEvent[];
+  volumeSpace: VolumeSpaceRow[];
 }

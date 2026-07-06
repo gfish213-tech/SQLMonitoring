@@ -10,6 +10,7 @@ import { ConsumersPanel } from "./components/ConsumersPanel";
 import { WaitsPanel } from "./components/WaitsPanel";
 import { PressurePanel } from "./components/PressurePanel";
 import { TempdbPanel } from "./components/TempdbPanel";
+import { VolumeSpacePanel } from "./components/VolumeSpacePanel";
 import { LogSpacePanel } from "./components/LogSpacePanel";
 import { IoLatencyPanel } from "./components/IoLatencyPanel";
 import { AutogrowthPanel } from "./components/AutogrowthPanel";
@@ -43,6 +44,7 @@ function buildTabs(data: TriageData): { key: DashboardTab; label: string; hasDat
             <PressurePanel pressure={data.pressure} />
             <TempdbPanel tempdb={data.tempdb} />
           </div>
+          <VolumeSpacePanel volumeSpace={data.volumeSpace} />
         </>
       ),
     },

@@ -12,6 +12,7 @@ import { getLogSpaceUsage } from "../sql/logSpace";
 import { getIoLatency } from "../sql/ioLatency";
 import { getRecentAutogrowthEvents } from "../sql/autogrowth";
 import { getRecentDeadlocks } from "../sql/deadlocks";
+import { getVolumeSpace } from "../sql/volumeSpace";
 
 const router = Router();
 
@@ -39,7 +40,7 @@ function labeled<T>(panel: string, promise: Promise<T>): Promise<T> {
 
 router.get("/triage", async (_req, res) => {
   try {
-    const [overview, blocking, longOps, agentJobs, consumers, waits, pressure, tempdb, logSpace, ioLatency, autogrowth, deadlocks] =
+    const [overview, blocking, longOps, agentJobs, consumers, waits, pressure, tempdb, logSpace, ioLatency, autogrowth, deadlocks, volumeSpace] =
       await Promise.all([
         labeled("overview", getOverview()),
         labeled("blocking", getBlockingChains()),
@@ -53,9 +54,24 @@ router.get("/triage", async (_req, res) => {
         labeled("ioLatency", getIoLatency()),
         labeled("autogrowth", getRecentAutogrowthEvents()),
         labeled("deadlocks", getRecentDeadlocks()),
+        labeled("volumeSpace", getVolumeSpace()),
       ]);
 
-    res.json({ overview, blocking, longOps, agentJobs, consumers, waits, pressure, tempdb, logSpace, ioLatency, autogrowth, deadlocks });
+    res.json({
+      overview,
+      blocking,
+      longOps,
+      agentJobs,
+      consumers,
+      waits,
+      pressure,
+      tempdb,
+      logSpace,
+      ioLatency,
+      autogrowth,
+      deadlocks,
+      volumeSpace,
+    });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }

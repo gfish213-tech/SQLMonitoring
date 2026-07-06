@@ -15,6 +15,7 @@ const PANEL_TO_TAB: Record<string, DashboardTab> = {
   TempDB: "overview",
   "Transaction log": "logspace",
   "Disk latency": "iolatency",
+  "Disk space": "overview",
   Autogrowth: "autogrowth",
   Deadlocks: "deadlocks",
 };

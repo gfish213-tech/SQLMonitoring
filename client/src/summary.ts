@@ -48,6 +48,16 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   lines.push(field("Server Start Time", new Date(data.overview.sqlServerStartTime).toLocaleString()));
   lines.push("");
 
+  lines.push("## Disk Volume Space");
+  if (data.volumeSpace.length === 0) {
+    lines.push("No volume information available.");
+  } else {
+    for (const v of data.volumeSpace) {
+      lines.push(`- ${v.volumeMountPoint}${v.logicalVolumeName ? ` (${v.logicalVolumeName})` : ""}: ${v.freeGb} GB free of ${v.totalGb} GB (${v.freePercent}% free)`);
+    }
+  }
+  lines.push("");
+
   lines.push("## Blocking & Long Transactions");
   if (data.blocking.length === 0) {
     lines.push("No blocking detected.");
@@ -135,6 +145,8 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   lines.push(field("Total Size", `${data.tempdb.totalDataFileMb} MB`));
   lines.push(field("Used", `${data.tempdb.usedMb} MB`));
   lines.push(field("Free", `${data.tempdb.freeMb} MB`));
+  lines.push(field("User Objects", `${data.tempdb.userObjectsMb} MB`));
+  lines.push(field("Internal Objects", `${data.tempdb.internalObjectsMb} MB`));
   lines.push(field("Version Store", `${data.tempdb.versionStoreMb} MB`));
   if (data.tempdb.topAllocators.length > 0) {
     lines.push("Top allocators:");
@@ -154,12 +166,16 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   }
   lines.push("");
 
-  lines.push("## Disk / IO Latency (averaged since SQL Server restart, not current)");
+  lines.push("## Disk / IO Latency (flagged if either the since-restart average or the last ~1s is elevated)");
   if (data.ioLatency.length === 0) {
     lines.push("No file with elevated latency.");
   } else {
     for (const io of data.ioLatency) {
-      lines.push(`- ${io.databaseName} (${io.fileName}) — read ${io.avgReadLatencyMs ?? "-"}ms, write ${io.avgWriteLatencyMs ?? "-"}ms`);
+      lines.push(
+        `- ${io.databaseName} (${io.fileName}) — since-restart avg: read ${io.avgReadLatencyMs ?? "-"}ms/write ${io.avgWriteLatencyMs ?? "-"}ms; ` +
+          `last ~1s: read ${io.currentReadLatencyMs ?? "-"}ms/write ${io.currentWriteLatencyMs ?? "-"}ms, ` +
+          `${io.readIops ?? "-"}/${io.writeIops ?? "-"} read/write IOPS, ${io.readThroughputMBps ?? "-"}/${io.writeThroughputMBps ?? "-"} MB/s read/write`
+      );
     }
   }
   lines.push("");

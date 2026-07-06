@@ -6,9 +6,9 @@ export function IoLatencyPanel({ ioLatency }: { ioLatency: IoLatencyRow[] }) {
     <Section
       id="panel-iolatency"
       title="Disk / IO Latency"
-      badge={<span className="panel-hint">averaged since SQL Server restart</span>}
+      badge={<span className="panel-hint">flagged if either the since-restart average or the last ~1s is elevated</span>}
       isEmpty={ioLatency.length === 0}
-      emptyText="No database file has elevated average read/write latency."
+      emptyText="No database file has elevated read/write latency."
     >
       <div className="table-wrap">
         <table>
@@ -16,8 +16,10 @@ export function IoLatencyPanel({ ioLatency }: { ioLatency: IoLatencyRow[] }) {
             <tr>
               <th>Database</th>
               <th>File</th>
-              <th>Avg Read Latency</th>
-              <th>Avg Write Latency</th>
+              <th>Avg Latency (since restart)</th>
+              <th>Latency (last ~1s)</th>
+              <th>IOPS (last ~1s)</th>
+              <th>Throughput (last ~1s)</th>
             </tr>
           </thead>
           <tbody>
@@ -25,8 +27,22 @@ export function IoLatencyPanel({ ioLatency }: { ioLatency: IoLatencyRow[] }) {
               <tr key={idx}>
                 <td>{row.databaseName}</td>
                 <td title={row.fileName}>{row.fileName.split("\\").pop()}</td>
-                <td>{row.avgReadLatencyMs !== null ? `${row.avgReadLatencyMs} ms` : "-"}</td>
-                <td>{row.avgWriteLatencyMs !== null ? `${row.avgWriteLatencyMs} ms` : "-"}</td>
+                <td>
+                  R {row.avgReadLatencyMs !== null ? `${row.avgReadLatencyMs}ms` : "-"} / W{" "}
+                  {row.avgWriteLatencyMs !== null ? `${row.avgWriteLatencyMs}ms` : "-"}
+                </td>
+                <td>
+                  R {row.currentReadLatencyMs !== null ? `${row.currentReadLatencyMs}ms` : "-"} / W{" "}
+                  {row.currentWriteLatencyMs !== null ? `${row.currentWriteLatencyMs}ms` : "-"}
+                </td>
+                <td>
+                  R {row.readIops !== null ? row.readIops.toLocaleString() : "-"} / W{" "}
+                  {row.writeIops !== null ? row.writeIops.toLocaleString() : "-"}
+                </td>
+                <td>
+                  R {row.readThroughputMBps !== null ? `${row.readThroughputMBps} MB/s` : "-"} / W{" "}
+                  {row.writeThroughputMBps !== null ? `${row.writeThroughputMBps} MB/s` : "-"}
+                </td>
               </tr>
             ))}
           </tbody>

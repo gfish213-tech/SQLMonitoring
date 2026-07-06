@@ -174,8 +174,9 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
   unconditionally.
 - `sql/*.ts` — one file per diagnostic check (`overview`, `blocking`,
   `longOps`, `agentJobs`, `consumers`, `currentWaits`, `pressure`, `tempdb`,
-  `logSpace`, `ioLatency`, `autogrowth`, `deadlocks`), each exporting a typed
-  async function that runs against `getPool()`. Notable ones:
+  `logSpace`, `ioLatency`, `autogrowth`, `deadlocks`, `volumeSpace`), each
+  exporting a typed async function that runs against `getPool()`. Notable
+  ones:
   - `blocking.ts` — computes "lead blockers" (blockers not themselves
     waiting on anyone) in TypeScript from two queries, including blockers
     that are idle with an open transaction (`sys.dm_exec_sessions.status =
@@ -200,19 +201,46 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
     style 2) and matching it against `sys.dm_exec_sessions.program_name`.
     Don't try to replicate SQL Server's GUID-to-hex byte ordering in
     JavaScript — it's a well-known source of subtle bugs.
-  - `tempdb.ts` — the version-store query (`sys.dm_tran_version_store_space_
-    usage`) requires SQL Server 2016 SP2+/2017+; wrapped in its own
-    `.catch(() => 0)` so older versions still return the rest of the panel.
+  - `tempdb.ts` — the used-space breakdown reads `tempdb.sys.dm_db_file_
+    space_usage` (user/internal objects + version store), not `FILEPROPERTY`.
+    `FILEPROPERTY(name, 'SpaceUsed')` evaluates against whatever database
+    this connection is *currently* in (this app defaults to `master`), not
+    the database implied by the table it's reading from — querying
+    `tempdb.sys.database_files` for file names and then calling
+    `FILEPROPERTY` on them silently returned `NULL` for every row (no file
+    in `master` matches those names), which is why "Used" used to show
+    `null MB`. `dm_db_file_space_usage` doesn't have this problem: it's
+    genuinely queryable via a 3-part name from any database context. Its
+    breakdown columns need SQL Server 2012+; wrapped in `.catch()` (all
+    zeros) so older versions still return the rest of the panel.
+  - `ioLatency.ts` — reports both the since-restart average (from
+    `sys.dm_io_virtual_file_stats`, cumulative and therefore diluted by
+    however long the server's been up) *and* a 1-second-delta "current"
+    reading (same technique as `overview.ts`/`pressure.ts`: sample the DMV
+    twice with a `WAITFOR DELAY '00:00:01'` between, using
+    `num_of_bytes_read`/`written` from the same two samples for IOPS and
+    MB/s throughput too). A file is surfaced if *either* figure crosses the
+    15ms threshold — filtering on the average alone would hide a live spike
+    that hasn't had time to move a lifetime average yet.
+  - `volumeSpace.ts` — every distinct OS volume hosting a SQL Server file,
+    via `sys.master_files CROSS APPLY sys.dm_os_volume_stats(...)`, so a
+    drive running low on space shows up without remoting in to check
+    Windows Explorer. Unlike `logSpace.ts`/`ioLatency.ts`, this one isn't
+    thresholded down to "abnormal only" (see below) — it's rendered in the
+    Overview tab, not a suspects tab, and every volume's headroom is useful
+    context, not just the ones already critical.
   - `autogrowth.ts`, `deadlocks.ts` — read from the default trace / the
     `system_health` extended-events session respectively, both of which are
     on by default but can be disabled by policy; both catch and return an
     empty array rather than erroring the whole `/api/triage` call.
-  - No query here should ever return unfiltered historical/cumulative data
-    (that's what DBADash is for) — every panel is either instantaneous
-    (`sys.dm_exec_requests`, `sys.dm_os_waiting_tasks`) or explicitly
-    thresholded down to "not normal" (e.g. `logSpace.ts` only returns
-    databases over 50% log used, `ioLatency.ts` only returns files over
-    15ms average latency).
+  - Nothing here should return unfiltered *historical/cumulative* data
+    (that's what DBADash is for): every panel is either instantaneous
+    (`sys.dm_exec_requests`, `sys.dm_os_waiting_tasks`), a 1-second-delta
+    "right now" reading, or explicitly thresholded down to "not normal"
+    (e.g. `logSpace.ts` only returns databases over 50% log used). The one
+    exception is `volumeSpace.ts`, which is current-state-but-unfiltered by
+    design (see above) — that's a deliberate exception to the thresholding
+    rule, not an oversight.
 - `index.ts` — wires up the app, then serves the built client. **Route
   registration order matters**: `dashboardRouter` is mounted at the same
   `/api` prefix as other routes, and its unconditional `requireConnection`
@@ -240,11 +268,15 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
   scoring with no server round-trip (all the data it needs is already in the
   one combined `TriageData` payload). Each panel's data is checked against
   fixed thresholds (e.g. blocking wait time/count, signal wait % > 25/40,
-  log/tempdb % full, I/O latency ms) and turned into zero or more `Finding`s
-  with a `severity` of `critical`/`warning`/`info`; results are sorted
-  critical-first (stable sort, so ties keep panel-scan order: blocking, long
-  ops, agent jobs, pressure, tempdb, log space, I/O latency, autogrowth,
-  deadlocks). Adjust thresholds here, not in the component, if a panel's
+  log/tempdb % full, I/O latency ms, volume free % < 15/5) and turned into
+  zero or more `Finding`s with a `severity` of `critical`/`warning`/`info`;
+  results are sorted critical-first (stable sort, so ties keep panel-scan
+  order: blocking, long ops, agent jobs, pressure, tempdb, log space, I/O
+  latency, disk space, autogrowth, deadlocks). The I/O latency finding
+  checks the worse of the since-restart average and the 1-second-delta
+  current reading, and says so ("Worse right now than its since-restart
+  average...") when the current reading is what actually crossed the
+  threshold. Adjust thresholds here, not in the component, if a panel's
   diagnosis reads as over/under-sensitive.
 - `components/DiagnosisSummary.tsx` — renders the top `Finding` as a banner
   (color-coded by severity) at the top of the dashboard, with the rest in a
@@ -261,9 +293,10 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
 - **Tabbed layout**: `App.tsx`'s `Dashboard` renders exactly one tab's
   content at a time via `activeTab` state (`DashboardTab` in `types.ts`) —
   only Diagnosis and the sticky toolbar are always visible; everything
-  else (Overview+Pressure+TempDB together as the "Overview" tab, then one
-  tab each for Blocking, Consumers, Backups, Agent Jobs, Waits, Log Space,
-  IO Latency, Autogrowth, Deadlocks) is tab-switched, not stacked on one
+  else (Overview+Pressure+TempDB+VolumeSpace together as the "Overview"
+  tab, then one tab each for Blocking, Consumers, Backups, Agent Jobs,
+  Waits, Log Space, IO Latency, Autogrowth, Deadlocks) is tab-switched, not
+  stacked on one
   long page. `buildTabs(data)` is the single place that maps `TriageData`
   to tab definitions — add a new tab there (and to `DashboardTab` in
   `types.ts`) rather than hardcoding another panel into the JSX. Each tab
