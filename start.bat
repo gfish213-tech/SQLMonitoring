@@ -81,6 +81,22 @@ if errorlevel 1 (
   )
 )
 
+rem Some environments (e.g. a corporate npm policy) gate install scripts behind an approval
+rem step - without it, msnodesqlv8's node-gyp rebuild never runs and the native SQL Server
+rem driver never gets compiled, so Connect/Test Connection fails later with "native msnodesqlv8
+rem driver is not built on this host" even though install otherwise looked fine. Best-effort:
+rem plain npm doesn't have this subcommand, so ignore failures here rather than aborting.
+if exist "server\package.json" (
+  pushd server
+  call npm approve-scripts --allow-scripts-pending 2>nul
+  popd
+)
+if exist "client\package.json" (
+  pushd client
+  call npm approve-scripts --allow-scripts-pending 2>nul
+  popd
+)
+
 echo Installing / updating dependencies...
 call npm run install:all
 if errorlevel 1 (

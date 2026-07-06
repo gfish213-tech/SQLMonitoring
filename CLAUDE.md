@@ -31,7 +31,14 @@ is hardcoded as `BRANCH` in the script (currently
 pushed to), regardless of which branch happens to be checked out locally,
 auto-stashing and restoring any local tracked edits (e.g. a user's own
 additions to `server/config/servers.json`) around the switch/pull so
-neither blocks on the other. Then runs `npm run install:all`, then `npm run
+neither blocks on the other. Then best-effort runs `npm approve-scripts
+--allow-scripts-pending` in `server/` and `client/` (some environments,
+e.g. a corporate npm policy, gate install scripts behind an approval step;
+without it `msnodesqlv8`'s `node-gyp rebuild` install script never runs and
+the native driver never compiles, so Connect/Test Connection fails later
+even though `npm install` itself looked clean — this isn't a standard npm
+subcommand, so failures here are silently ignored rather than aborting the
+whole script), then `npm run install:all`, then `npm run
 serve` in its own window, polls `localhost:4000` until the server
 responds, and opens it in the default browser. **Update the `BRANCH`
 value in `start.bat` if/when this work moves to a different branch (e.g.
