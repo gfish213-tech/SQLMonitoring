@@ -42,7 +42,7 @@ export async function getCurrentConsumers(): Promise<ConsumerRow[]> {
     OUTER APPLY sys.dm_exec_sql_text(r.sql_handle) qt
     OUTER APPLY (
       SELECT
-        CAST(SUM((u.user_objects_alloc_page_count + u.internal_objects_alloc_page_count
+        CAST(SUM(u.user_objects_alloc_page_count + u.internal_objects_alloc_page_count
           - u.user_objects_dealloc_page_count - u.internal_objects_dealloc_page_count) * 8.0 / 1024 AS DECIMAL(10, 2))
         AS tempdb_mb
       FROM sys.dm_db_session_space_usage u
