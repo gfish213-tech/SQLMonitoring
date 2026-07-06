@@ -451,3 +451,81 @@ tr.blocked-row {
   max-height: 300px;
   overflow-y: auto;
 }
+
+.diagnosis-banner {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 20px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel-bg);
+}
+
+.diagnosis-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.diagnosis-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.diagnosis-detail {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.diagnosis-critical {
+  border-color: rgba(255, 92, 92, 0.5);
+  background: rgba(255, 92, 92, 0.08);
+}
+
+.diagnosis-critical .diagnosis-title {
+  color: var(--danger);
+}
+
+.diagnosis-warning {
+  border-color: rgba(255, 184, 79, 0.5);
+  background: rgba(255, 184, 79, 0.08);
+}
+
+.diagnosis-warning .diagnosis-title {
+  color: var(--warning);
+}
+
+.diagnosis-info {
+  border-color: rgba(79, 140, 255, 0.4);
+  background: rgba(79, 140, 255, 0.06);
+}
+
+.diagnosis-clear {
+  border-color: rgba(79, 200, 130, 0.4);
+  background: rgba(79, 200, 130, 0.06);
+}
+
+.diagnosis-clear .diagnosis-title {
+  color: #4fc882;
+}
+
+.diagnosis-more {
+  margin-top: 10px;
+  font-size: 12.5px;
+}
+
+.diagnosis-more summary {
+  cursor: pointer;
+  color: var(--text-dim);
+}
+
+.diagnosis-more ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--text-dim);
+}
+
+.diagnosis-more li {
+  margin-bottom: 4px;
+}

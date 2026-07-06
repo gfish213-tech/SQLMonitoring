@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
 import { ServerPicker } from "./components/ServerPicker";
+import { DiagnosisSummary } from "./components/DiagnosisSummary";
 import { OverviewBar } from "./components/OverviewBar";
 import { BlockingPanel } from "./components/BlockingPanel";
 import { LongOpsPanel } from "./components/LongOpsPanel";
@@ -59,6 +60,7 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
 
       {data && (
         <main className="dashboard">
+          <DiagnosisSummary data={data} />
           <OverviewBar overview={data.overview} />
           <BlockingPanel blocking={data.blocking} />
           <div className="dashboard-row">

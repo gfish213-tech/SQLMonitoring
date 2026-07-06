@@ -34,6 +34,14 @@
   `SQLMonitoring` subfolder first, then continues as normal — so sharing
   just this one file (plus the usual prerequisites: Git, Node.js, the C++
   build toolchain, and the ODBC driver) is enough to set up a new machine.
+- **Diagnosis banner**: a summary at the top of the dashboard that scores
+  all 12 panels against fixed thresholds and states the single most likely
+  cause in plain language (e.g. "Most likely cause: Blocking — Session 82
+  is blocking 2 other sessions"), with any other factors that crossed a
+  threshold in a collapsed "N other potential factors" list, or a plain "no
+  obvious cause detected" state if nothing did. Answers "which of the usual
+  suspects is it" directly instead of requiring a manual scan of all 11
+  panels.
 
 ## 1.2.0 — 2026-07-06
 

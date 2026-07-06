@@ -83,7 +83,15 @@ every 20s** to opt into polling.
 
 ## What it shows
 
-Each section states plainly when there's nothing to report (e.g. "No blocking
+At the top, a **diagnosis banner** scores all 12 panels against thresholds
+(e.g. blocking wait time, signal wait %, log/tempdb fullness, I/O latency) and
+states the single most likely cause in plain language, with any other factors
+that crossed a threshold available in a "N other potential factors"
+expandable list. If nothing crossed a threshold, it says so plainly instead of
+guessing. This is a heuristic pointer to where to look first, not a
+replacement for reading the panel it points to.
+
+Each section below states plainly when there's nothing to report (e.g. "No blocking
 detected") so ruling a cause in or out is a glance, not a read:
 
 - **Blocking & Long Transactions** — lead blockers (including sessions sitting

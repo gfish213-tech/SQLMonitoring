@@ -200,6 +200,20 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
   shared types package between `client` and `server`); update both sides
   together when changing an API response shape.
 - `hooks/useTriage.ts` — see Refresh behavior above.
+- `diagnosis.ts` — `diagnose(data: TriageData): Finding[]`, pure heuristic
+  scoring with no server round-trip (all the data it needs is already in the
+  one combined `TriageData` payload). Each panel's data is checked against
+  fixed thresholds (e.g. blocking wait time/count, signal wait % > 25/40,
+  log/tempdb % full, I/O latency ms) and turned into zero or more `Finding`s
+  with a `severity` of `critical`/`warning`/`info`; results are sorted
+  critical-first (stable sort, so ties keep panel-scan order: blocking, long
+  ops, agent jobs, pressure, tempdb, log space, I/O latency, autogrowth,
+  deadlocks). Adjust thresholds here, not in the component, if a panel's
+  diagnosis reads as over/under-sensitive.
+- `components/DiagnosisSummary.tsx` — renders the top `Finding` as a banner
+  (color-coded by severity) at the top of the dashboard, with the rest in a
+  collapsed `<details>` list; shows a plain "no obvious cause" state when
+  `diagnose()` returns nothing rather than showing an empty banner.
 - `components/ServerPicker.tsx` — the connect screen: a `<select>` populated
   from `GET /api/connection/servers`, with an environment badge, replacing
   what used to be a manual connection form.
