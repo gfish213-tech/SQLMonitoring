@@ -32,16 +32,10 @@ pushed to), regardless of which branch happens to be checked out locally,
 auto-stashing and restoring any local tracked edits (e.g. a user's own
 additions to `server/config/servers.json`) around the switch/pull so
 neither blocks on the other. Then best-effort runs `npm approve-scripts
-msnodesqlv8` / `npm approve-scripts esbuild` in `server/` and `client/`
-(some environments, e.g. a corporate npm policy, gate install scripts
-behind an approval step; without it `msnodesqlv8`'s `node-gyp rebuild`
-install script never runs and the native driver never compiles, so
-Connect/Test Connection fails later even though `npm install` itself
-looked clean. Approval turned out to be per-package by name — the
-`--allow-scripts-pending` flag first tried here just re-lists pending
-scripts rather than approving them. This isn't a standard npm subcommand
-either way, so failures here are silently ignored rather than aborting the
-whole script), then `npm run install:all`, then `npm run
+msnodesqlv8` / `npm approve-scripts esbuild` in `server/` and `client/` as
+a fallback for the `allowScripts` gate (see below) — this isn't a standard
+npm subcommand, so failures here are silently ignored rather than aborting
+the whole script — then `npm run install:all`, then `npm run
 serve` in its own window, polls `localhost:4000` until the server
 responds, and opens it in the default browser. **Update the `BRANCH`
 value in `start.bat` if/when this work moves to a different branch (e.g.
@@ -68,6 +62,21 @@ npm run build    # tsc -b && vite build -> dist/
 ```
 
 There are no lint or test scripts configured in either project.
+
+Some environments (e.g. a corporate npm policy) gate install scripts
+behind an approval step — without it, `msnodesqlv8`'s `node-gyp rebuild`
+install script never runs and the native driver never compiles, so
+Connect/Test Connection fails later even though `npm install` itself
+looked clean. `server/package.json` and `client/package.json` both commit
+an `allowScripts` field (`{ "msnodesqlv8@5.2.1": true, "esbuild@0.28.1":
+true }` and `{ "esbuild@0.25.12": true }` respectively) approving the
+exact versions currently in use, so a fresh clone doesn't need any manual
+approval step. Approval is per-package **and per-version** — if a
+dependency bump changes the resolved version, the key goes stale and the
+warning comes back; re-run `npm approve-scripts <pkg>` in the affected
+folder and commit the updated `allowScripts` entry. (The
+`--allow-scripts-pending` flag doesn't work for this — it only re-lists
+pending scripts, it doesn't approve them.)
 
 `server`'s `npm install` compiles the native `msnodesqlv8` driver via
 node-gyp — this requires a C++ build toolchain and the Microsoft ODBC Driver
