@@ -206,20 +206,26 @@ export type DashboardTab =
   | "deadlocks"
   | "indexes";
 
+// Refresh has two modes (see App.tsx / useTriage.ts): "quick" runs only small, single-pass
+// queries (bounded system DMVs, no per-row scans, no XML shredding, no disk/OS syscalls) and is
+// the default for the initial load, manual Refresh, and auto-refresh; "full" adds everything
+// with a larger scan surface. Quick-only fields are always present; full-only fields are
+// `undefined` until an explicit Full Refresh has run at least once - components must treat
+// `undefined` ("not checked yet") differently from an empty array ("checked, nothing found").
 export interface TriageData {
   overview: OverviewStats;
   blocking: LeadBlocker[];
   longOps: LongOpRow[];
   agentJobs: AgentJobRow[];
-  consumers: ConsumerRow[];
   waits: CurrentWaitRow[];
   pressure: PressureStats;
-  tempdb: TempdbStats;
   logSpace: LogSpaceRow[];
-  vlfCounts: VlfCountRow[];
-  ioLatency: IoLatencyRow[];
-  autogrowth: AutogrowthEvent[];
-  deadlocks: DeadlockEvent[];
-  volumeSpace: VolumeSpaceRow[];
-  indexStats: IndexStats;
+  consumers?: ConsumerRow[];
+  tempdb?: TempdbStats;
+  vlfCounts?: VlfCountRow[];
+  ioLatency?: IoLatencyRow[];
+  autogrowth?: AutogrowthEvent[];
+  deadlocks?: DeadlockEvent[];
+  volumeSpace?: VolumeSpaceRow[];
+  indexStats?: IndexStats;
 }

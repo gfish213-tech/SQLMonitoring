@@ -147,6 +147,31 @@ this hook or reintroduce per-panel polling — the whole design fetches
 everything in one combined request (`GET /api/triage`) specifically to avoid
 1 client generating 11 separate polling loops.
 
+**Two refresh modes**, for the same reason taken further: `GET
+/api/triage?mode=quick` (mount, the "Quick Refresh" button, and
+auto-refresh — all three only ever request quick) runs just the small,
+single-pass checks (bounded system DMVs, no per-row scans, no XML, no
+disk/OS syscalls): overview, blocking, longOps, agentJobs, waits,
+pressure, logSpace. `?mode=full` (or the query param omitted — the
+"Full Refresh" button explicitly requests it) adds everything with a
+larger scan surface: consumers, tempdb, vlfCounts, ioLatency, autogrowth,
+deadlocks, volumeSpace, indexStats. `dashboard.ts`'s `router.get("/triage")`
+runs the quick batch first (always), then conditionally the second batch
+if not `mode=quick`; see `sql/*.ts` below for which specific DMV
+characteristics put a check in which bucket. The full-only fields are
+`undefined` (not present in the JSON at all) on a quick response —
+`TriageData` marks them optional in `types.ts` for exactly this reason.
+Every component reading a full-only field must treat `undefined` ("not
+checked yet") as a third state distinct from an empty array ("checked,
+nothing found") — see `NotCheckedPanel.tsx` and the `hasData: boolean |
+undefined` tri-state on `App.tsx`'s tab dots (red/dim-gray/none). Adding a
+new full-only check needs: the field marked optional in `types.ts`, a
+guard in `diagnosis.ts` (`data.field ?? []` or an `if (data.field)`), a
+"not checked" branch in `summary.ts`, and the tab wired with the
+`hasData: undefined` / `<NotCheckedPanel>` pattern in `buildTabs()` —
+skipping any one of these will crash or silently misreport on a
+quick-only snapshot.
+
 ## Architecture
 
 ### Server (`server/src`)
@@ -167,11 +192,11 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
   `ConnectionMeta` with `label`/`environment` from the matched
   `config/servers.json` entry before returning it to the client.
 - `routes/dashboard.ts` — a single combined `GET /api/triage` endpoint that
-  runs every `sql/*.ts` query via `Promise.all` and returns one JSON object
-  (see Refresh behavior above for why it's one endpoint, not eleven). Mounted
-  at `/api`, and applies a `requireConnection` middleware via `router.use()`
-  with no path — this matches **every** request that reaches this router,
-  unconditionally.
+  runs every `sql/*.ts` query via `Promise.all` (in two batches — quick then
+  conditionally full, see Refresh behavior above) and returns one JSON
+  object. Mounted at `/api`, and applies a `requireConnection` middleware
+  via `router.use()` with no path — this matches **every** request that
+  reaches this router, unconditionally.
 - `sql/*.ts` — one file per diagnostic check (`overview`, `blocking`,
   `longOps`, `agentJobs`, `consumers`, `currentWaits`, `pressure`, `tempdb`,
   `logSpace`, `ioLatency`, `autogrowth`, `deadlocks`, `volumeSpace`,
@@ -288,7 +313,13 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
 - `types.ts` — manually mirrors the server's response shapes (there's no
   shared types package between `client` and `server`); update both sides
   together when changing an API response shape.
-- `hooks/useTriage.ts` — see Refresh behavior above.
+- `hooks/useTriage.ts` — see Refresh behavior above. Exposes `refresh()`
+  (quick) and `fullRefresh()` (full) as separate functions rather than a
+  single `refresh(mode)` — this makes it impossible for a caller to
+  accidentally wire the 20s auto-refresh interval to anything but quick.
+  `lastMode` tracks which one the current `data` came from, for the
+  "(quick check)" label next to the timestamp and the quick-only note in
+  `DiagnosisSummary`.
 - `diagnosis.ts` — `diagnose(data: TriageData): Finding[]`, pure heuristic
   scoring with no server round-trip (all the data it needs is already in the
   one combined `TriageData` payload). Each panel's data is checked against
@@ -329,10 +360,19 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
   long page. `buildTabs(data)` is the single place that maps `TriageData`
   to tab definitions — add a new tab there (and to `DashboardTab` in
   `types.ts`) rather than hardcoding another panel into the JSX. Each tab
-  carries a `hasData` flag that renders a small red dot on its `.tab-bar`
-  button, so a DBA can see which tabs have something to look at without
-  clicking through all of them — this is what replaced the old
-  sorted-by-emptiness 2-column layout when panels stopped being co-mounted.
+  carries a `hasData: boolean | undefined` tri-state (not a plain flag) that
+  renders a red dot / no dot / dim gray dot on its `.tab-bar` button — `true`
+  ("checked, found something"), `false` ("checked, clean"), or `undefined`
+  ("not checked this refresh" — full-only tabs on a quick response), so a DBA
+  can see which tabs have something to look at, which are already ruled out,
+  and which simply haven't been checked yet, without clicking through all of
+  them. Full-only tabs (Consumers, IO Latency, Autogrowth, Deadlocks,
+  Indexes) and full-only sections within the Overview tab (TempDB, Disk
+  Volume Space) render `NotCheckedPanel.tsx` — a dashed-border placeholder —
+  instead of their normal panel when `hasData` is `undefined`, so "not
+  checked" never gets misread as "checked, nothing found." This tri-state is
+  what replaced the old sorted-by-emptiness 2-column layout when panels
+  stopped being co-mounted.
   `DiagnosisSummary`'s `PANEL_TO_TAB` map turns a `Finding`'s `panel` label
   into a `DashboardTab` so its "View details →" button (passed down as
   `onJumpToPanel`) can switch straight to the relevant tab; a new

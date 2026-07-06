@@ -75,15 +75,23 @@ dev` and `cd client && npm run dev` in two terminals instead — see
 
 ## Refresh behavior
 
-**Manual by default.** This tool is often used to look at a server that's
-already under load, so it must not add its own recurring query traffic
-without being asked. Click **Refresh** to pull a fresh snapshot (one HTTP
-request that runs all the checks below in parallel), or check **Auto-refresh
-every 20s** to opt into polling. A refresh takes about a second by design:
-the rate/pressure numbers (Batch Requests/sec, buffer cache hit ratio,
-signal wait %) are measured over a real 1-second sample rather than shown
-as misleading since-restart totals. **Copy for AI** copies the whole snapshot
-(diagnosis + every panel's data) to the clipboard as plain text, ready to
+**Manual by default, and two weights of refresh.** This tool is often used
+to look at a server that's already under load, so it must not add its own
+recurring query traffic without being asked — and even when asked, it
+shouldn't necessarily run everything. **Quick Refresh** (used on page load,
+this button, and auto-refresh) runs only the small, single-pass checks:
+Overview, Blocking, Backups/Long Ops, Agent Jobs, Waits, Pressure, Log
+Space. **Full Refresh** additionally runs the heavier checks — Consumers,
+TempDB, VLF Counts, IO Latency, Autogrowth, Deadlocks, Disk Volume Space,
+Indexes. Tabs/sections not covered by the last refresh show a dashed "not
+checked" placeholder and a dim gray tab dot, distinct from a red dot
+("checked, found something") or no dot ("checked, clean"). Check
+**Auto-refresh every 20s** to opt into polling — quick only, never full. A
+refresh takes about a second by design: the rate/pressure numbers (Batch
+Requests/sec, buffer cache hit ratio, signal wait %) are measured over a
+real 1-second sample rather than shown as misleading since-restart totals.
+**Copy for AI** copies the whole snapshot (diagnosis + every panel's data,
+noting anything not yet checked) to the clipboard as plain text, ready to
 paste into an AI chat for a second opinion or deeper analysis.
 
 ## What it shows
@@ -100,8 +108,9 @@ a replacement for reading the panel it points to.
 Below that, a **tab strip** (pinned to the top while you scroll) switches
 between Overview, Blocking, Consumers, Backups, Agent Jobs, Waits, Log
 Space, IO Latency, Autogrowth, Deadlocks, and Indexes — only one tab's
-content is shown at a time, and any tab with actual data gets a small red
-dot so it's obvious at a glance which ones are worth checking.
+content is shown at a time. A tab gets a red dot if it found something, no
+dot if it's clean, or a dim gray dot if it's a full-only tab that hasn't
+been checked yet (run **Full Refresh** to check it).
 
 Numbers and panels that could otherwise be misread carry a hint: stats with
 a small **ⓘ** explain what's being measured (hover it), and panels with a

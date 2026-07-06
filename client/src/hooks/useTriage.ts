@@ -9,13 +9,15 @@ export function useTriage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [lastMode, setLastMode] = useState<"quick" | "full" | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
 
-  const refresh = useCallback(async () => {
+  const fetchMode = useCallback(async (mode: "quick" | "full") => {
     setLoading(true);
     try {
-      const result = await api.triage();
+      const result = await api.triage(mode);
       setData(result);
+      setLastMode(mode);
       setError(null);
       setLastUpdated(new Date());
     } catch (err) {
@@ -25,9 +27,14 @@ export function useTriage() {
     }
   }, []);
 
-  // Fetch once on mount. Deliberately no default interval — this tool exists to check on a
-  // server that may already be struggling, so it must not add its own background query load
-  // unless the user explicitly opts into auto-refresh below.
+  const refresh = useCallback(() => fetchMode("quick"), [fetchMode]);
+  const fullRefresh = useCallback(() => fetchMode("full"), [fetchMode]);
+
+  // Fetch once on mount, quick-only. Deliberately no default interval, and auto-refresh below
+  // only ever does a quick fetch — this tool exists to check on a server that may already be
+  // struggling, so it must not add its own background query load, and a "quick" check already
+  // covers the small/cheap DMVs; the heavier ones (full per-file scans, XML shredding, disk/OS
+  // syscalls) only ever run when the user explicitly clicks Full Refresh.
   useEffect(() => {
     refresh();
   }, [refresh]);
@@ -38,5 +45,5 @@ export function useTriage() {
     return () => clearInterval(id);
   }, [autoRefresh, refresh]);
 
-  return { data, error, loading, lastUpdated, refresh, autoRefresh, setAutoRefresh };
+  return { data, error, loading, lastUpdated, lastMode, refresh, fullRefresh, autoRefresh, setAutoRefresh };
 }

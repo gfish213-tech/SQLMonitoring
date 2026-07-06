@@ -92,17 +92,27 @@ should just run `npm run serve` from the root.
 
 ## 5. Using the dashboard
 
-There is **no automatic refresh by default** — this tool often gets used
-against a server that's already struggling, so it must not add its own
-recurring query load. Click **Refresh** for a fresh snapshot (one request that
-runs every check in parallel), or check **Auto-refresh every 20s** if you want
-to opt into polling while you watch something resolve. Each refresh takes
-about one second — that's deliberate: the rate numbers (Batch Requests/sec,
-buffer cache hit ratio, signal wait %) are measured over a real 1-second
-sample instead of being shown as since-restart totals. Click **Copy for AI**
-to copy the entire snapshot — the diagnosis plus every panel's data, spelled
-out as plain text — to your clipboard, ready to paste into an AI chat if you
-want a second opinion or help interpreting something unfamiliar.
+There is **no automatic refresh by default**, and refreshing comes in two
+weights — this tool often gets used against a server that's already
+struggling, so it must not add its own recurring query load, and even an
+explicit refresh shouldn't necessarily run everything. **Quick Refresh**
+(also what runs on page load and on auto-refresh) covers only the small,
+single-pass checks: Overview, Blocking, Backups/Long Ops, Agent Jobs, Waits,
+Pressure, Log Space. **Full Refresh** additionally runs the heavier checks —
+Consumers, TempDB, VLF Counts, IO Latency, Autogrowth, Deadlocks, Disk
+Volume Space, Indexes. Anything not covered by your last refresh shows a
+dashed "not checked — run Full Refresh" placeholder instead of an empty
+state, so you're never misled into thinking a section was checked and came
+back clean when it just wasn't looked at. Check **Auto-refresh every 20s**
+if you want to opt into polling while you watch something resolve — this
+always uses Quick Refresh, never Full. Each refresh takes about one
+second — that's deliberate: the rate numbers (Batch Requests/sec, buffer
+cache hit ratio, signal wait %) are measured over a real 1-second sample
+instead of being shown as since-restart totals. Click **Copy for AI** to
+copy the entire snapshot — the diagnosis plus every panel's data (noting
+anything not yet checked), spelled out as plain text — to your clipboard,
+ready to paste into an AI chat if you want a second opinion or help
+interpreting something unfamiliar.
 
 Right below the refresh bar, a **diagnosis banner** does the first pass for
 you: it scores every panel's data against fixed thresholds and states the
@@ -118,12 +128,15 @@ crossed a concerning line. Treat it as a starting point, not a final verdict
 Below that is a **tab strip** — Overview, Blocking, Consumers, Backups,
 Agent Jobs, Waits, Log Space, IO Latency, Autogrowth, Deadlocks, Indexes —
 that stays pinned to the top of the screen as you scroll. Only one tab's
-content shows at a time; any tab with actual data gets a small red dot, so
-you can tell at a glance which ones are worth clicking into without checking
-all eleven. Hover the small **ⓘ** next to any stat for a one-line explanation
-of what it means and how it's measured; panels with a filtering rule (e.g.
-"top 20 by CPU time") show that rule in their header at all times, not only
-when the panel happens to be empty.
+content shows at a time; a tab gets a red dot if it found something, no dot
+if it's clean, or a dim gray dot if it's a full-only tab that your last
+refresh didn't check (Consumers, IO Latency, Autogrowth, Deadlocks, and
+Indexes are always full-only; TempDB and Disk Volume Space within Overview
+are too) — click **Full Refresh** to check those. Hover the small **ⓘ**
+next to any stat for a one-line explanation of what it means and how it's
+measured; panels with a filtering rule (e.g. "top 20 by CPU time") show
+that rule in their header at all times, not only when the panel happens to
+be empty.
 
 Every panel states plainly when there's nothing to report, so ruling a cause
 in or out is a glance. The **Overview** tab combines the always-on server

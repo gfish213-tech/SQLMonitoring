@@ -6,6 +6,8 @@ function field(label: string, value: string | number | null | undefined): string
   return `${label}: ${value ?? "-"}`;
 }
 
+const NOT_CHECKED = "Not checked in this quick refresh - run Full Refresh for this section.";
+
 // Plain-text rendering of the whole snapshot, meant to be pasted into an AI chat for further
 // analysis - so every panel is spelled out in full sentences rather than relying on the visual
 // layout (colors, borders, table alignment) that carries meaning on screen but not in plain text.
@@ -57,7 +59,9 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   lines.push("");
 
   lines.push("## Disk Volume Space");
-  if (data.volumeSpace.length === 0) {
+  if (data.volumeSpace === undefined) {
+    lines.push(NOT_CHECKED);
+  } else if (data.volumeSpace.length === 0) {
     lines.push("No volume information available.");
   } else {
     for (const v of data.volumeSpace) {
@@ -117,7 +121,9 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   lines.push("");
 
   lines.push("## Top Resource Consumers (Right Now) (top 20 by CPU time)");
-  if (data.consumers.length === 0) {
+  if (data.consumers === undefined) {
+    lines.push(NOT_CHECKED);
+  } else if (data.consumers.length === 0) {
     lines.push("No active requests other than this connection.");
   } else {
     for (const c of data.consumers) {
@@ -152,16 +158,20 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   lines.push("");
 
   lines.push("## TempDB Contention");
-  lines.push(field("Total Size", `${data.tempdb.totalDataFileMb} MB`));
-  lines.push(field("Used", `${data.tempdb.usedMb} MB`));
-  lines.push(field("Free", `${data.tempdb.freeMb} MB`));
-  lines.push(field("User Objects", `${data.tempdb.userObjectsMb} MB`));
-  lines.push(field("Internal Objects", `${data.tempdb.internalObjectsMb} MB`));
-  lines.push(field("Version Store", `${data.tempdb.versionStoreMb} MB`));
-  if (data.tempdb.topAllocators.length > 0) {
-    lines.push("Top allocators:");
-    for (const a of data.tempdb.topAllocators) {
-      lines.push(`- Session ${a.sessionId} (${a.loginName ?? "-"}) — ${a.tempdbAllocatedMb} MB`);
+  if (data.tempdb === undefined) {
+    lines.push(NOT_CHECKED);
+  } else {
+    lines.push(field("Total Size", `${data.tempdb.totalDataFileMb} MB`));
+    lines.push(field("Used", `${data.tempdb.usedMb} MB`));
+    lines.push(field("Free", `${data.tempdb.freeMb} MB`));
+    lines.push(field("User Objects", `${data.tempdb.userObjectsMb} MB`));
+    lines.push(field("Internal Objects", `${data.tempdb.internalObjectsMb} MB`));
+    lines.push(field("Version Store", `${data.tempdb.versionStoreMb} MB`));
+    if (data.tempdb.topAllocators.length > 0) {
+      lines.push("Top allocators:");
+      for (const a of data.tempdb.topAllocators) {
+        lines.push(`- Session ${a.sessionId} (${a.loginName ?? "-"}) — ${a.tempdbAllocatedMb} MB`);
+      }
     }
   }
   lines.push("");
@@ -177,7 +187,9 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   lines.push("");
 
   lines.push("## Virtual Log File (VLF) Counts (only databases over 100 VLFs shown; requires SQL Server 2017+)");
-  if (data.vlfCounts.length === 0) {
+  if (data.vlfCounts === undefined) {
+    lines.push(NOT_CHECKED);
+  } else if (data.vlfCounts.length === 0) {
     lines.push("No database has an excessive VLF count.");
   } else {
     for (const v of data.vlfCounts) {
@@ -187,7 +199,9 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   lines.push("");
 
   lines.push("## Disk / IO Latency (flagged if either the since-restart average or the last ~1s is elevated)");
-  if (data.ioLatency.length === 0) {
+  if (data.ioLatency === undefined) {
+    lines.push(NOT_CHECKED);
+  } else if (data.ioLatency.length === 0) {
     lines.push("No file with elevated latency.");
   } else {
     for (const io of data.ioLatency) {
@@ -201,7 +215,9 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   lines.push("");
 
   lines.push("## Recent Auto-Growth Events (last 24 hours)");
-  if (data.autogrowth.length === 0) {
+  if (data.autogrowth === undefined) {
+    lines.push(NOT_CHECKED);
+  } else if (data.autogrowth.length === 0) {
     lines.push("None in the last 24 hours.");
   } else {
     for (const ev of data.autogrowth) {
@@ -215,7 +231,9 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   lines.push("");
 
   lines.push("## Recent Deadlocks (from system_health; already resolved automatically by SQL Server)");
-  if (data.deadlocks.length === 0) {
+  if (data.deadlocks === undefined) {
+    lines.push(NOT_CHECKED);
+  } else if (data.deadlocks.length === 0) {
     lines.push("None found in system_health.");
   } else {
     for (const d of data.deadlocks) {
@@ -228,7 +246,9 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   lines.push("");
 
   lines.push("## Top Tables by Scans (since last restart; index_id shown instead of index name)");
-  if (data.indexStats.topScannedTables.length === 0) {
+  if (data.indexStats === undefined) {
+    lines.push(NOT_CHECKED);
+  } else if (data.indexStats.topScannedTables.length === 0) {
     lines.push("No table has significant scan activity.");
   } else {
     for (const t of data.indexStats.topScannedTables) {
@@ -238,7 +258,9 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   lines.push("");
 
   lines.push("## Unused Indexes (since last restart; written to but never read)");
-  if (data.indexStats.unusedIndexes.length === 0) {
+  if (data.indexStats === undefined) {
+    lines.push(NOT_CHECKED);
+  } else if (data.indexStats.unusedIndexes.length === 0) {
     lines.push("No index has write activity with zero reads.");
   } else {
     for (const idx of data.indexStats.unusedIndexes) {

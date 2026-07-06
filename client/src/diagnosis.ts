@@ -111,15 +111,16 @@ export function diagnose(data: TriageData): Finding[] {
     });
   }
 
-  if (data.tempdb.totalDataFileMb > 0) {
-    const usedPercent = (data.tempdb.usedMb / data.tempdb.totalDataFileMb) * 100;
+  if (data.tempdb && data.tempdb.totalDataFileMb > 0) {
+    const tempdb = data.tempdb;
+    const usedPercent = (tempdb.usedMb / tempdb.totalDataFileMb) * 100;
     if (usedPercent > 90) {
-      const top = data.tempdb.topAllocators[0];
+      const top = tempdb.topAllocators[0];
       findings.push({
         severity: "critical",
         panel: "TempDB",
         title: `TempDB is ${usedPercent.toFixed(0)}% full`,
-        detail: `${data.tempdb.usedMb.toFixed(0)} MB of ${data.tempdb.totalDataFileMb.toFixed(0)} MB used${
+        detail: `${tempdb.usedMb.toFixed(0)} MB of ${tempdb.totalDataFileMb.toFixed(0)} MB used${
           top ? ` — top consumer: session ${top.sessionId} (${top.loginName ?? "unknown"})` : ""
         }.`,
       });
@@ -135,7 +136,7 @@ export function diagnose(data: TriageData): Finding[] {
     });
   }
 
-  for (const vlf of data.vlfCounts) {
+  for (const vlf of data.vlfCounts ?? []) {
     if (vlf.vlfCount > 1000) {
       findings.push({
         severity: "warning",
@@ -146,7 +147,7 @@ export function diagnose(data: TriageData): Finding[] {
     }
   }
 
-  for (const io of data.ioLatency) {
+  for (const io of data.ioLatency ?? []) {
     const worstAvg = Math.max(io.avgReadLatencyMs ?? 0, io.avgWriteLatencyMs ?? 0);
     const worstCurrent = Math.max(io.currentReadLatencyMs ?? 0, io.currentWriteLatencyMs ?? 0);
     const worst = Math.max(worstAvg, worstCurrent);
@@ -161,7 +162,7 @@ export function diagnose(data: TriageData): Finding[] {
     });
   }
 
-  for (const vol of data.volumeSpace) {
+  for (const vol of data.volumeSpace ?? []) {
     if (vol.freePercent < 15) {
       findings.push({
         severity: vol.freePercent < 5 ? "critical" : "warning",
@@ -172,7 +173,7 @@ export function diagnose(data: TriageData): Finding[] {
     }
   }
 
-  for (const ev of data.autogrowth) {
+  for (const ev of data.autogrowth ?? []) {
     findings.push({
       severity: ev.durationMs > 5000 ? "warning" : "info",
       panel: "Autogrowth",
@@ -181,7 +182,7 @@ export function diagnose(data: TriageData): Finding[] {
     });
   }
 
-  if (data.deadlocks.length > 0) {
+  if (data.deadlocks && data.deadlocks.length > 0) {
     const latest = data.deadlocks[0];
     findings.push({
       severity: "info",

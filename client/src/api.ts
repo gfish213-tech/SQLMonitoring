@@ -36,5 +36,5 @@ export const api = {
 
   status: () => request<{ connected: boolean; connection: ConnectionMeta | null }>("/connection/status"),
 
-  triage: () => request<TriageData>("/triage"),
+  triage: (mode: "quick" | "full") => request<TriageData>(`/triage?mode=${mode}`),
 };

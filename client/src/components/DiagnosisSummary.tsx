@@ -23,8 +23,23 @@ const PANEL_TO_TAB: Record<string, DashboardTab> = {
   Deadlocks: "deadlocks",
 };
 
-export function DiagnosisSummary({ data, onJumpToPanel }: { data: TriageData; onJumpToPanel?: (tab: DashboardTab) => void }) {
+export function DiagnosisSummary({
+  data,
+  onJumpToPanel,
+  isQuickOnly,
+}: {
+  data: TriageData;
+  onJumpToPanel?: (tab: DashboardTab) => void;
+  isQuickOnly?: boolean;
+}) {
   const findings = diagnose(data);
+
+  const quickNote = isQuickOnly && (
+    <div className="diagnosis-quick-note">
+      Based on a quick check only — Consumers, TempDB, VLF counts, IO Latency, Autogrowth, Deadlocks, Volume Space, and Index stats weren't
+      checked this time. Click <strong>Full Refresh</strong> for the complete picture.
+    </div>
+  );
 
   if (findings.length === 0) {
     return (
@@ -36,6 +51,7 @@ export function DiagnosisSummary({ data, onJumpToPanel }: { data: TriageData; on
             Nothing crossed a concerning threshold in this snapshot. If the server still feels slow, check the panels below for anything
             more subtle.
           </div>
+          {quickNote}
         </div>
       </div>
     );
@@ -57,6 +73,7 @@ export function DiagnosisSummary({ data, onJumpToPanel }: { data: TriageData; on
           )}
         </div>
         <div className="diagnosis-detail">{top.detail}</div>
+        {quickNote}
         {rest.length > 0 && (
           <details className="diagnosis-more">
             <summary>

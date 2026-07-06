@@ -3,8 +3,8 @@ import type { LogSpaceRow, VlfCountRow } from "../types";
 // Two independent checks share this tab (log fullness and VLF fragmentation aren't correlated -
 // a mostly-empty log can still be badly fragmented from past growth), so this doesn't use the
 // shared Section wrapper: each half needs its own empty state regardless of the other's.
-export function LogSpacePanel({ logSpace, vlfCounts }: { logSpace: LogSpaceRow[]; vlfCounts: VlfCountRow[] }) {
-  const flagged = logSpace.length > 0 || vlfCounts.length > 0;
+export function LogSpacePanel({ logSpace, vlfCounts }: { logSpace: LogSpaceRow[]; vlfCounts?: VlfCountRow[] }) {
+  const flagged = logSpace.length > 0 || (vlfCounts?.length ?? 0) > 0;
 
   return (
     <section id="panel-logspace" className={`panel ${flagged ? "panel-flagged" : ""}`}>
@@ -41,7 +41,11 @@ export function LogSpacePanel({ logSpace, vlfCounts }: { logSpace: LogSpaceRow[]
         <h2>Virtual Log File (VLF) Count</h2>
         <span className="panel-hint">only databases over 100 VLFs shown; requires SQL Server 2017+</span>
       </div>
-      {vlfCounts.length === 0 ? (
+      {vlfCounts === undefined ? (
+        <div className="empty-panel">
+          Not checked in this quick refresh — click <strong>Full Refresh</strong> to check this.
+        </div>
+      ) : vlfCounts.length === 0 ? (
         <div className="empty-panel">No database has an excessive VLF count.</div>
       ) : (
         <div className="table-wrap">

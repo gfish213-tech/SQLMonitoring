@@ -28,45 +28,48 @@ function requireConnection(_req: Request, res: Response, next: NextFunction) {
 router.use(requireConnection);
 
 // Single combined endpoint: the whole point is a manual "Refresh" click (or an explicit
-// auto-refresh opt-in) fetches everything in one request rather than 11 independent polling
+// auto-refresh opt-in) fetches everything in one request rather than many independent polling
 // loops hammering an already-struggling server.
 // Labels each panel query so a failure names the panel it came from — a bare Promise.all
-// rejection here otherwise surfaces as a generic message with no clue which of the 12 queries
-// actually failed.
+// rejection here otherwise surfaces as a generic message with no clue which query actually
+// failed.
 function labeled<T>(panel: string, promise: Promise<T>): Promise<T> {
   return promise.catch((err) => {
     throw new Error(`[${panel}] ${(err as Error).message}`);
   });
 }
 
-router.get("/triage", async (_req, res) => {
+// "quick" runs only small, single-pass queries against bounded system DMVs (session/request
+// counts, wait lists, msdb job tables, DBCC SQLPERF) — the checks a DBA wants first, and cheap
+// enough to run against a server that's already struggling. "full" adds everything with a
+// larger scan surface: per-row correlated subqueries (Consumers), full per-file DMV scans done
+// twice (IO Latency), real OS-level syscalls per file (Volume Space), XML shredding (Deadlocks),
+// a trace file read off disk (Autogrowth), and a per-row scalar function call across every
+// index-usage row on the server (Index Stats) — exactly the kind of extra load this tool must
+// not add uninvited. Defaults to "full" for direct API callers; the client always passes an
+// explicit mode.
+router.get("/triage", async (req, res) => {
+  const quick = req.query.mode === "quick";
+
   try {
-    const [
-      overview,
-      blocking,
-      longOps,
-      agentJobs,
-      consumers,
-      waits,
-      pressure,
-      tempdb,
-      logSpace,
-      vlfCounts,
-      ioLatency,
-      autogrowth,
-      deadlocks,
-      volumeSpace,
-      indexStats,
-    ] = await Promise.all([
+    const [overview, blocking, longOps, agentJobs, waits, pressure, logSpace] = await Promise.all([
       labeled("overview", getOverview()),
       labeled("blocking", getBlockingChains()),
       labeled("longOps", getLongRunningOps()),
       labeled("agentJobs", getRunningAgentJobs()),
-      labeled("consumers", getCurrentConsumers()),
       labeled("waits", getCurrentWaits()),
       labeled("pressure", getPressureStats()),
-      labeled("tempdb", getTempdbStats()),
       labeled("logSpace", getLogSpaceUsage()),
+    ]);
+
+    if (quick) {
+      res.json({ overview, blocking, longOps, agentJobs, waits, pressure, logSpace });
+      return;
+    }
+
+    const [consumers, tempdb, vlfCounts, ioLatency, autogrowth, deadlocks, volumeSpace, indexStats] = await Promise.all([
+      labeled("consumers", getCurrentConsumers()),
+      labeled("tempdb", getTempdbStats()),
       labeled("vlfCounts", getVlfCounts()),
       labeled("ioLatency", getIoLatency()),
       labeled("autogrowth", getRecentAutogrowthEvents()),
@@ -80,11 +83,11 @@ router.get("/triage", async (_req, res) => {
       blocking,
       longOps,
       agentJobs,
-      consumers,
       waits,
       pressure,
-      tempdb,
       logSpace,
+      consumers,
+      tempdb,
       vlfCounts,
       ioLatency,
       autogrowth,

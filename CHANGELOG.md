@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Added
+- **Two refresh modes — Quick Refresh and Full Refresh**: refreshing a
+  server that's already struggling shouldn't itself add a heavy batch of
+  queries. `GET /api/triage?mode=quick` (used on page load, the new **Quick
+  Refresh** button, and auto-refresh) now runs only the small, single-pass
+  checks — Overview, Blocking, Backups/Long Ops, Agent Jobs, Waits,
+  Pressure, Log Space. **Full Refresh** additionally runs the heavier
+  checks with a larger scan surface — Consumers, TempDB, VLF Counts, IO
+  Latency, Autogrowth, Deadlocks, Disk Volume Space, Indexes. Tabs and
+  sections that weren't checked in a quick refresh show a dashed "not
+  checked — run Full Refresh" placeholder instead of an empty state, and
+  their tab dot is dim gray rather than red/none, so "not checked yet" is
+  never confused with "checked, nothing found." The diagnosis banner and
+  Copy for AI text both call this out explicitly on a quick-only snapshot.
+
 ### Fixed
 - **TempDB "Used" showed `null MB`**: the query read tempdb's file names
   from `tempdb.sys.database_files` but then called `FILEPROPERTY(name,
