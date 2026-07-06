@@ -2,6 +2,7 @@ import { getPool } from "../db";
 
 export interface BlockedSession {
   sessionId: number;
+  blockedBy: number;
   waitType: string | null;
   waitTimeMs: number;
   waitResource: string | null;
@@ -93,6 +94,28 @@ async function getBlockerSessions(blockerIds: number[]) {
   return result.recordset;
 }
 
+// Everyone stuck behind a lead blocker, including indirect victims: in a chain A <- B <- C,
+// C waits on B (not on A directly), but A is still the root cause of C being stuck. A naive
+// "waiters where blocking_session_id = lead" drops C entirely and understates the blast
+// radius. BFS from the lead through the waiter graph; direct waiters come out first.
+function collectChainWaiters(leadId: number, waitersByBlocker: Map<number, WaiterRow[]>): WaiterRow[] {
+  const chain: WaiterRow[] = [];
+  const visited = new Set<number>([leadId]);
+  const queue = [leadId];
+
+  while (queue.length > 0) {
+    const blockerId = queue.shift()!;
+    for (const waiter of waitersByBlocker.get(blockerId) ?? []) {
+      if (visited.has(waiter.session_id)) continue;
+      visited.add(waiter.session_id);
+      chain.push(waiter);
+      queue.push(waiter.session_id);
+    }
+  }
+
+  return chain;
+}
+
 export async function getBlockingChains(): Promise<LeadBlocker[]> {
   const waiters = await getWaiters();
   if (waiters.length === 0) return [];
@@ -101,12 +124,19 @@ export async function getBlockingChains(): Promise<LeadBlocker[]> {
   const blockerIds = [...new Set(waiters.map((w) => w.blocking_session_id))];
   const blockers = await getBlockerSessions(blockerIds);
 
+  const waitersByBlocker = new Map<number, WaiterRow[]>();
+  for (const w of waiters) {
+    const list = waitersByBlocker.get(w.blocking_session_id);
+    if (list) list.push(w);
+    else waitersByBlocker.set(w.blocking_session_id, [w]);
+  }
+
   // A "lead" blocker is one that isn't itself waiting on someone else — the actual root cause.
   const leadBlockerIds = blockerIds.filter((id) => !waiterIds.has(id));
 
   return leadBlockerIds.map((leadId) => {
     const blockerInfo = blockers.find((b) => b.session_id === leadId);
-    const directWaiters = waiters.filter((w) => w.blocking_session_id === leadId);
+    const chainWaiters = collectChainWaiters(leadId, waitersByBlocker);
 
     return {
       sessionId: leadId,
@@ -119,8 +149,9 @@ export async function getBlockingChains(): Promise<LeadBlocker[]> {
       lastStatementText: blockerInfo?.last_statement_text ?? null,
       lastRequestEndTime: blockerInfo?.last_request_end_time ?? null,
       databaseName: blockerInfo?.database_name ?? null,
-      blockedSessions: directWaiters.map((w) => ({
+      blockedSessions: chainWaiters.map((w) => ({
         sessionId: w.session_id,
+        blockedBy: w.blocking_session_id,
         waitType: w.wait_type,
         waitTimeMs: w.wait_time_ms,
         waitResource: w.wait_resource,

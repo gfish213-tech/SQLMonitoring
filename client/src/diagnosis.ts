@@ -60,8 +60,9 @@ export function diagnose(data: TriageData): Finding[] {
     findings.push({
       severity: data.pressure.signalWaitPercent > 40 ? "critical" : "warning",
       panel: "CPU pressure",
-      title: `CPU pressure: ${data.pressure.signalWaitPercent.toFixed(1)}% signal wait`,
-      detail: "More than a quarter of total wait time is spent waiting for a CPU to free up, not for a resource — the server is CPU-bound.",
+      title: `${data.pressure.signalWaitPercent.toFixed(1)}% of wait time is spent waiting for a CPU`,
+      detail:
+        "Over the sampled second, a large share of wait time was signal wait (waiting for a CPU to free up, not for a resource) — the server is CPU-bound right now.",
     });
   }
 

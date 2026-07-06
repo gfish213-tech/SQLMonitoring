@@ -14,6 +14,12 @@ export interface OverviewStats {
 export async function getOverview(): Promise<OverviewStats> {
   const pool = getPool();
 
+  // "Batch Requests/sec" and both "Buffer cache hit ratio" counters are cumulative since
+  // restart (PERF_COUNTER_BULK_COUNT / ratio pairs), so their raw cntr_value is NOT a rate —
+  // displaying it directly would show the total batches ever executed. Sample twice, one
+  // second apart, and report the delta. Page life expectancy is a true gauge and needs no
+  // sampling. The 1s WAITFOR runs in parallel with the other panels' queries, so it adds ~1s
+  // to the combined refresh, not per-panel.
   const [sysInfo, sessionCounts, counters] = await Promise.all([
     pool.request().query(`
       SELECT cpu_count, sqlserver_start_time
@@ -26,21 +32,39 @@ export async function getOverview(): Promise<OverviewStats> {
         (SELECT COUNT(*) FROM sys.dm_exec_requests WHERE blocking_session_id <> 0) AS blocked_request_count
     `),
     pool.request().query(`
-      SELECT counter_name, cntr_value, object_name
+      DECLARE @batch1 BIGINT, @hit1 BIGINT, @base1 BIGINT;
+
+      SELECT
+        @batch1 = MAX(CASE WHEN counter_name = 'Batch Requests/sec' THEN cntr_value END),
+        @hit1 = MAX(CASE WHEN counter_name = 'Buffer cache hit ratio' AND object_name LIKE '%Buffer Manager%' THEN cntr_value END),
+        @base1 = MAX(CASE WHEN counter_name = 'Buffer cache hit ratio base' AND object_name LIKE '%Buffer Manager%' THEN cntr_value END)
       FROM sys.dm_os_performance_counters
-      WHERE counter_name IN ('Buffer cache hit ratio', 'Buffer cache hit ratio base', 'Page life expectancy', 'Batch Requests/sec')
+      WHERE counter_name IN ('Batch Requests/sec', 'Buffer cache hit ratio', 'Buffer cache hit ratio base');
+
+      WAITFOR DELAY '00:00:01';
+
+      SELECT
+        MAX(CASE WHEN counter_name = 'Batch Requests/sec' THEN cntr_value END) - @batch1 AS batch_requests_per_sec,
+        MAX(CASE WHEN counter_name = 'Buffer cache hit ratio' AND object_name LIKE '%Buffer Manager%' THEN cntr_value END) - @hit1 AS hit_delta,
+        MAX(CASE WHEN counter_name = 'Buffer cache hit ratio base' AND object_name LIKE '%Buffer Manager%' THEN cntr_value END) - @base1 AS base_delta,
+        MAX(CASE WHEN counter_name = 'Page life expectancy' AND object_name LIKE '%Buffer Manager%' THEN cntr_value END) AS page_life_expectancy
+      FROM sys.dm_os_performance_counters
+      WHERE counter_name IN ('Batch Requests/sec', 'Buffer cache hit ratio', 'Buffer cache hit ratio base', 'Page life expectancy');
     `),
   ]);
 
-  const counterRows = counters.recordset as { counter_name: string; cntr_value: number; object_name: string }[];
-  const getCounter = (name: string) =>
-    counterRows.find((r) => r.counter_name.trim() === name)?.cntr_value ?? null;
+  const c = counters.recordset[0] as {
+    batch_requests_per_sec: number | null;
+    hit_delta: number | null;
+    base_delta: number | null;
+    page_life_expectancy: number | null;
+  };
 
-  const hitRatio = getCounter("Buffer cache hit ratio");
-  const hitRatioBase = getCounter("Buffer cache hit ratio base");
+  // base_delta = 0 means no page lookups happened during the sample second (idle server) —
+  // there's no meaningful hit ratio to report for that instant.
   const bufferCacheHitRatio =
-    hitRatio !== null && hitRatioBase !== null && hitRatioBase !== 0
-      ? Math.round((hitRatio / hitRatioBase) * 10000) / 100
+    c.hit_delta !== null && c.base_delta !== null && c.base_delta > 0
+      ? Math.min(100, Math.round((c.hit_delta / c.base_delta) * 10000) / 100)
       : null;
 
   return {
@@ -50,7 +74,7 @@ export async function getOverview(): Promise<OverviewStats> {
     activeRequestCount: sessionCounts.recordset[0].active_request_count,
     blockedRequestCount: sessionCounts.recordset[0].blocked_request_count,
     bufferCacheHitRatio,
-    pageLifeExpectancy: getCounter("Page life expectancy"),
-    batchRequestsPerSec: getCounter("Batch Requests/sec"),
+    pageLifeExpectancy: c.page_life_expectancy,
+    batchRequestsPerSec: c.batch_requests_per_sec !== null && c.batch_requests_per_sec >= 0 ? c.batch_requests_per_sec : null,
   };
 }

@@ -162,6 +162,20 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
     that are idle with an open transaction (`sys.dm_exec_sessions.status =
     'sleeping'` + `open_transaction_count > 0`) — a common, easy-to-miss
     blocking cause that a naive "who's blocking" query misses entirely.
+    Each lead's `blockedSessions` is the full *transitive* chain (BFS over
+    the waiter graph), not just direct waiters — in a chain A←B←C, C waits
+    on B but A is still its root cause; each waiter carries `blockedBy` so
+    the chain structure stays visible.
+  - `overview.ts`, `pressure.ts` — "Batch Requests/sec", the buffer cache
+    hit ratio, and signal wait % are all *cumulative-since-restart* sources
+    (`PERF_COUNTER_BULK_COUNT` counters / `sys.dm_os_wait_stats`), so these
+    two modules sample twice with a `WAITFOR DELAY '00:00:01'` between and
+    report the 1-second delta — the raw values would show lifetime totals
+    (billions of batches) or a lifetime average that can't move during a
+    live incident. This means a refresh deliberately takes ~1 second; don't
+    "optimize" the WAITFOR away, and exclude benign background waits (see
+    `BENIGN_WAITS`, which must include `WAITFOR` itself) from any wait-stats
+    delta. Page life expectancy is a true gauge and is read directly.
   - `agentJobs.ts` — matches a running job to its live session by computing
     the job_id-as-hex string *in SQL* (`CAST(job_id AS varbinary(16))`,
     style 2) and matching it against `sys.dm_exec_sessions.program_name`.
@@ -184,7 +198,10 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
   registration order matters**: `dashboardRouter` is mounted at the same
   `/api` prefix as other routes, and its unconditional `requireConnection`
   middleware will swallow *any* route registered after it under `/api` (this
-  already broke `/api/health` once). Static file serving + the catch-all
+  already broke `/api/health` once). A JSON 404 handler mounted at `/api`
+  after both routers catches any unmatched API path — without it those fall
+  through to the SPA catch-all and return `index.html` with a 200. Static
+  file serving + the catch-all
   route for the client must come *after* all `/api/*` routes; it resolves
   `client/dist` via `path.resolve(__dirname, "../../client/dist")`, which
   works whether running from `server/src` (tsx dev) or `server/dist`

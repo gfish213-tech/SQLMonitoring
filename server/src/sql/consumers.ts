@@ -22,7 +22,7 @@ export interface ConsumerRow {
 export async function getCurrentConsumers(): Promise<ConsumerRow[]> {
   const pool = getPool();
   const result = await pool.request().query(`
-    SELECT
+    SELECT TOP 20
       r.session_id,
       s.login_name,
       s.host_name,

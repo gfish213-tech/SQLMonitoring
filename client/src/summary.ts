@@ -61,9 +61,9 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
       if (b.lastStatementText) lines.push(`  Last statement: ${b.lastStatementText}`);
       for (const w of b.blockedSessions) {
         lines.push(
-          `  - Waiting session ${w.sessionId} (${w.loginName ?? "-"}) on ${w.databaseName ?? "-"} — ${w.waitType ?? "-"} for ${formatMs(
-            w.waitTimeMs
-          )} — query: ${w.queryText ?? "-"}`
+          `  - Session ${w.sessionId} (${w.loginName ?? "-"}) waiting on session ${w.blockedBy}, on ${w.databaseName ?? "-"} — ${
+            w.waitType ?? "-"
+          } for ${formatMs(w.waitTimeMs)} — query: ${w.queryText ?? "-"}`
         );
       }
     }

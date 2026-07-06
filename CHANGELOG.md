@@ -3,6 +3,32 @@
 ## Unreleased
 
 ### Fixed
+- **"Batch Requests/sec" and "Buffer Cache Hit Ratio" showed lifetime
+  totals, not current values**: both come from cumulative-since-restart
+  performance counters, so on a real server "Batch Requests/sec" would have
+  displayed the total number of batches ever executed (billions). Both are
+  now computed as a 1-second delta (two samples with a `WAITFOR DELAY`
+  between), so they show what the last second actually looked like. A
+  refresh now deliberately takes about a second.
+- **Signal Wait % (CPU pressure) was also cumulative since restart** — on a
+  server up for months a live CPU storm barely moved it, and old history
+  could keep it permanently elevated, making the diagnosis banner's "CPU
+  pressure" finding unreliable in both directions. Now a 1-second delta
+  over `sys.dm_os_wait_stats` with the standard benign background waits
+  excluded.
+- **Blocking chains dropped indirect victims**: in a chain A←B←C, session C
+  (waiting on B, which waits on A) was silently omitted from A's blocked
+  list, understating "blocking N sessions" during a real blocking storm.
+  The full transitive chain is now collected, and a new "Waiting On" column
+  shows each victim's direct blocker so the chain structure is visible.
+- Top Resource Consumers is now capped at 20 rows (was unbounded — a server
+  with hundreds of active requests would have rendered them all).
+- Unknown `/api/*` paths now return a JSON 404 instead of falling through
+  to the SPA catch-all and returning the app's HTML with a 200; the client's
+  `request()` helper also no longer surfaces a raw `JSON.parse` error when a
+  proxy or mid-restart server returns non-JSON.
+- Diagnosis banner's CPU finding no longer reads "CPU pressure: CPU
+  pressure: …".
 - `consumers.ts`'s per-session tempdb calculation had a paren mismatch that
   put the `* 8.0 / 1024` cast math inside `SUM(...)`'s own argument list,
   which made SQL Server parse it as a call to a nonexistent table function

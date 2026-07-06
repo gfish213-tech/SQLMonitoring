@@ -26,6 +26,7 @@ export interface OverviewStats {
 
 export interface BlockedSession {
   sessionId: number;
+  blockedBy: number;
   waitType: string | null;
   waitTimeMs: number;
   waitResource: string | null;

@@ -5,7 +5,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json" },
     ...init,
   });
-  const body = await res.json();
+
+  // Guard against non-JSON responses (a proxy's HTML error page, the server mid-restart, etc.)
+  // so the user sees a readable message instead of a JSON.parse SyntaxError.
+  const text = await res.text();
+  let body: { error?: unknown };
+  try {
+    body = JSON.parse(text);
+  } catch {
+    throw new Error(res.ok ? "The server returned an unreadable (non-JSON) response." : `Request failed with status ${res.status}`);
+  }
+
   if (!res.ok) {
     const message = typeof body.error === "string" && body.error.trim() ? body.error : `Request failed with status ${res.status}`;
     throw new Error(message);

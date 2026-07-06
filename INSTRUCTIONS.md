@@ -96,7 +96,10 @@ There is **no automatic refresh by default** — this tool often gets used
 against a server that's already struggling, so it must not add its own
 recurring query load. Click **Refresh** for a fresh snapshot (one request that
 runs every check in parallel), or check **Auto-refresh every 20s** if you want
-to opt into polling while you watch something resolve. Click **Copy for AI**
+to opt into polling while you watch something resolve. Each refresh takes
+about one second — that's deliberate: the rate numbers (Batch Requests/sec,
+buffer cache hit ratio, signal wait %) are measured over a real 1-second
+sample instead of being shown as since-restart totals. Click **Copy for AI**
 to copy the entire snapshot — the diagnosis plus every panel's data, spelled
 out as plain text — to your clipboard, ready to paste into an AI chat if you
 want a second opinion or help interpreting something unfamiliar.

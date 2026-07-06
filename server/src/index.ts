@@ -18,6 +18,13 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/connection", connectionRouter);
 app.use("/api", dashboardRouter);
 
+// Any /api path that no router matched must 404 as JSON here — otherwise it falls through to
+// the SPA catch-all below and returns index.html with a 200, which the client's JSON parsing
+// would choke on.
+app.use("/api", (_req, res) => {
+  res.status(404).json({ error: "Unknown API endpoint" });
+});
+
 // Resolves to <repo>/client/dist whether running via tsx from server/src or the compiled
 // server/dist — both are two directories below the repo root.
 const clientDist = path.resolve(__dirname, "../../client/dist");

@@ -31,6 +31,7 @@ export function BlockingPanel({ blocking }: { blocking: LeadBlocker[] }) {
                 <thead>
                   <tr>
                     <th>Waiting Session</th>
+                    <th>Waiting On</th>
                     <th>Login</th>
                     <th>DB</th>
                     <th>Wait Type</th>
@@ -43,6 +44,7 @@ export function BlockingPanel({ blocking }: { blocking: LeadBlocker[] }) {
                   {b.blockedSessions.map((w) => (
                     <tr key={w.sessionId}>
                       <td>{w.sessionId}</td>
+                      <td>{w.blockedBy}</td>
                       <td>{w.loginName ?? "-"}</td>
                       <td>{w.databaseName ?? "-"}</td>
                       <td>{w.waitType ?? "-"}</td>
