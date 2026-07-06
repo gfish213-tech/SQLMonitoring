@@ -2,7 +2,28 @@
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
+set REPO_URL=https://github.com/gfish213-tech/SQLMonitoring.git
 set BRANCH=claude/sql-performance-monitor-ui-tcteaq
+set REPO_DIR=SQLMonitoring
+
+rem Self-bootstrap: if this copy of start.bat isn't already sitting inside the project (e.g. it
+rem was handed to someone as a single file), clone the repo into a subfolder next to it and
+rem continue from there, so this one file is all that's needed to get started.
+if not exist "server\package.json" (
+  if exist "%REPO_DIR%\server\package.json" (
+    cd /d "%REPO_DIR%"
+  ) else (
+    echo First-time setup: cloning SQL Performance Monitor into ".\%REPO_DIR%"...
+    git clone --branch %BRANCH% %REPO_URL% "%REPO_DIR%"
+    if errorlevel 1 (
+      echo.
+      echo Clone failed. Make sure Git is installed and you have access to the repository.
+      pause
+      exit /b 1
+    )
+    cd /d "%REPO_DIR%"
+  )
+)
 
 git rev-parse --is-inside-work-tree >nul 2>&1
 if errorlevel 1 (

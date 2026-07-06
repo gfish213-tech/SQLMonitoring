@@ -19,7 +19,13 @@ Two independent npm projects under one thin root-level orchestration layer
 `node_modules`/lockfile).
 
 `start.bat` (repo root) is the double-click entry point for end users who
-don't want a terminal: it force-syncs the local checkout to whatever branch
+don't want a terminal. It's self-bootstrapping: if it's handed out as a
+standalone file (no `server/package.json` next to it), it clones the repo
+into a `SQLMonitoring` subfolder first, then continues from there — so
+sharing this one file is enough to get a new machine running, provided
+Git, Node.js, the C++ build toolchain, and the ODBC driver are already
+installed there (see Requirements below) and the machine has access to
+clone the repo. Once inside a real checkout, it force-syncs to whatever branch
 is hardcoded as `BRANCH` in the script (currently
 `claude/sql-performance-monitor-ui-tcteaq` — the branch all fixes are
 pushed to), regardless of which branch happens to be checked out locally,

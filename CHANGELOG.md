@@ -29,6 +29,11 @@
   switch/pull, installs dependencies, runs `npm run serve` (build + start)
   in its own window, polls `localhost:4000` until the server responds, then
   opens it in the default browser automatically.
+- `start.bat` is now self-bootstrapping: if handed to someone as a
+  standalone file with no project next to it, it clones the repo into a
+  `SQLMonitoring` subfolder first, then continues as normal — so sharing
+  just this one file (plus the usual prerequisites: Git, Node.js, the C++
+  build toolchain, and the ODBC driver) is enough to set up a new machine.
 
 ## 1.2.0 — 2026-07-06
 
