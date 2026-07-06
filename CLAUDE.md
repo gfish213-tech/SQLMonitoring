@@ -18,6 +18,13 @@ Two independent npm projects under one thin root-level orchestration layer
 (not a workspace — `server/` and `client/` each have their own
 `node_modules`/lockfile).
 
+`start.bat` (repo root) is the double-click entry point for end users who
+don't want a terminal: installs deps if `server/node_modules` is missing,
+runs `npm run serve` in its own window, polls `localhost:4000` until the
+server responds, then opens it in the default browser. Keep it in sync with
+the npm scripts below if those change (e.g. if the port or script names
+change).
+
 ```bash
 # From repo root — the primary way this app is meant to be run
 npm run install:all   # npm install in both server/ and client/

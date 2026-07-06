@@ -1,5 +1,23 @@
 # Version History
 
+## Unreleased
+
+### Fixed
+- `consumers.ts`'s per-session tempdb calculation had a paren mismatch that
+  put the `* 8.0 / 1024` cast math inside `SUM(...)`'s own argument list,
+  which made SQL Server parse it as a call to a nonexistent table function
+  and fail with `'SUM' is not a recognized built-in function name`.
+- `/api/triage` now labels each panel's query (e.g. `[consumers] ...`) on
+  failure, so a bad query names itself instead of surfacing a bare,
+  unattributed error.
+
+### Added
+- `start.bat` at the repo root: a double-click launcher for end users who
+  don't want to touch a terminal. Installs dependencies on first run if
+  needed, runs `npm run serve` (build + start) in its own window, polls
+  `localhost:4000` until the server responds, then opens it in the default
+  browser automatically.
+
 ## 1.2.0 — 2026-07-06
 
 Reworked into a live incident-triage tool ("why is the DB slow right now?")

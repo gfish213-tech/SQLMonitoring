@@ -55,6 +55,12 @@ needs something different from the defaults.
 
 ## Running it
 
+Double-click `start.bat` in the repo root — it installs dependencies on
+first run, builds, starts the server, and opens `http://localhost:4000` in
+your browser automatically.
+
+Or from the command line:
+
 ```bash
 npm run install:all   # from repo root: installs both server/ and client/
 npm run serve         # builds the client, then starts the one server process

@@ -42,7 +42,14 @@ Edit `server/config/servers.json` — a plain JSON array, one entry per server:
 
 ## 3. Install dependencies and run
 
-From the repo root:
+**Easiest: double-click `start.bat`** in the repo root. It installs
+dependencies on first run (if `server/node_modules` is missing), builds and
+starts the app, waits for it to come up, then opens
+`http://localhost:4000` in your default browser automatically. A console
+window titled "SQL Performance Monitor" stays open while it's running —
+closing that window stops the server.
+
+Or from the command line, from the repo root:
 
 ```bash
 npm run install:all   # installs server/ and client/ separately
