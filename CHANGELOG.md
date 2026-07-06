@@ -10,6 +10,14 @@
 - `/api/triage` now labels each panel's query (e.g. `[consumers] ...`) on
   failure, so a bad query names itself instead of surfacing a bare,
   unattributed error.
+- `start.bat`'s "stash local changes" step relied on `git diff --quiet HEAD`
+  to predict whether anything needed stashing, which can false-positive on
+  Windows (e.g. CRLF normalization) and lead to a `git stash push` that
+  saves nothing, followed by a `git stash pop` that fails with "No stash
+  entries found". It now checks whether a stash was actually created
+  (comparing the stash ref before/after) instead of predicting it, and uses
+  delayed expansion throughout so variables set inside a parenthesized
+  block are read correctly.
 
 ### Added
 - `start.bat` at the repo root: a double-click launcher for end users who

@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
 set BRANCH=claude/sql-performance-monitor-ui-tcteaq
@@ -10,11 +10,21 @@ if errorlevel 1 (
 ) else (
   echo Checking for updates...
 
-  git diff --quiet HEAD
-  set HASLOCAL=%errorlevel%
-  if not "%HASLOCAL%"=="0" (
-    echo Local changes detected ^(e.g. edits to server\config\servers.json^) - stashing them before updating...
-    git stash push -m "start.bat auto-stash" >nul
+  rem Detect whether "git stash push" actually created a stash (rather than trusting "git diff"
+  rem to predict it, which can false-positive on Windows from CRLF normalization and stash
+  rem nothing, leaving a later "git stash pop" to fail with "No stash entries found").
+  set STASH_BEFORE=
+  for /f "delims=" %%i in ('git rev-parse -q --verify refs/stash 2^>nul') do set STASH_BEFORE=%%i
+
+  git stash push -m "start.bat auto-stash" >nul
+
+  set STASH_AFTER=
+  for /f "delims=" %%i in ('git rev-parse -q --verify refs/stash 2^>nul') do set STASH_AFTER=%%i
+
+  set DID_STASH=0
+  if not "!STASH_BEFORE!"=="!STASH_AFTER!" (
+    set DID_STASH=1
+    echo Local changes detected ^(e.g. edits to server\config\servers.json^) - stashed before updating.
   )
 
   git fetch origin %BRANCH% >nul 2>&1
@@ -38,7 +48,7 @@ if errorlevel 1 (
     )
   )
 
-  if not "%HASLOCAL%"=="0" (
+  if "!DID_STASH!"=="1" (
     echo Restoring local changes...
     git stash pop
     if errorlevel 1 (
