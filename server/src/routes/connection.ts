@@ -14,6 +14,8 @@ function parseConnectionInput(body: unknown): ConnectionInput {
     database: String(b.database),
     instanceName: b.instanceName ? String(b.instanceName) : undefined,
     encrypt: b.encrypt,
+    trustServerCertificate: b.trustServerCertificate,
+    odbcDriver: b.odbcDriver ? String(b.odbcDriver) : undefined,
   };
 }
 

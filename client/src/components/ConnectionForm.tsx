@@ -7,7 +7,8 @@ const initialForm: ConnectionFormData = {
   port: "1433",
   database: "",
   instanceName: "",
-  encrypt: false,
+  encrypt: true,
+  trustServerCertificate: false,
 };
 
 export function ConnectionForm({ onConnected }: { onConnected: (meta: ConnectionMeta) => void }) {
@@ -74,6 +75,14 @@ export function ConnectionForm({ onConnected }: { onConnected: (meta: Connection
           <label>
             <input type="checkbox" checked={form.encrypt} onChange={(e) => update("encrypt", e.target.checked)} />
             Encrypt connection
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={form.trustServerCertificate}
+              onChange={(e) => update("trustServerCertificate", e.target.checked)}
+            />
+            Trust server certificate
           </label>
         </div>
 

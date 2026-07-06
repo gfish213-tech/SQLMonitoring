@@ -4,12 +4,14 @@ export interface ConnectionForm {
   database: string;
   instanceName: string;
   encrypt: boolean;
+  trustServerCertificate: boolean;
 }
 
 export interface ConnectionMeta {
   server: string;
   database: string;
   loginName: string;
+  odbcDriver: string;
 }
 
 export interface OverviewStats {

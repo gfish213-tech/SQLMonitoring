@@ -29,6 +29,7 @@ function toConnectionPayload(form: ConnectionForm) {
     database: form.database,
     instanceName: form.instanceName || undefined,
     encrypt: form.encrypt,
+    trustServerCertificate: form.trustServerCertificate,
   };
 }
 
