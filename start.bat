@@ -84,16 +84,19 @@ if errorlevel 1 (
 rem Some environments (e.g. a corporate npm policy) gate install scripts behind an approval
 rem step - without it, msnodesqlv8's node-gyp rebuild never runs and the native SQL Server
 rem driver never gets compiled, so Connect/Test Connection fails later with "native msnodesqlv8
-rem driver is not built on this host" even though install otherwise looked fine. Best-effort:
-rem plain npm doesn't have this subcommand, so ignore failures here rather than aborting.
+rem driver is not built on this host" even though install otherwise looked fine.
+rem "--allow-scripts-pending" turned out to just re-list pending scripts, not approve them -
+rem the actual mechanism is per-package by name. Best-effort: plain npm doesn't have this
+rem subcommand at all, so ignore failures here rather than aborting.
 if exist "server\package.json" (
   pushd server
-  call npm approve-scripts --allow-scripts-pending 2>nul
+  call npm approve-scripts msnodesqlv8 2>nul
+  call npm approve-scripts esbuild 2>nul
   popd
 )
 if exist "client\package.json" (
   pushd client
-  call npm approve-scripts --allow-scripts-pending 2>nul
+  call npm approve-scripts esbuild 2>nul
   popd
 )
 

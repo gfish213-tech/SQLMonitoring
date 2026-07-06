@@ -3,15 +3,18 @@
 ## Unreleased
 
 ### Added
-- `start.bat` now best-effort runs `npm approve-scripts
-  --allow-scripts-pending` in `server/` and `client/` before installing.
-  Some environments (e.g. a corporate npm policy) gate install scripts
-  behind an approval step; without it, `msnodesqlv8`'s `node-gyp rebuild`
-  install script never runs, so the native SQL Server driver never
-  compiles and every Connect/Test Connection attempt fails with "native
-  msnodesqlv8 driver is not built on this host" even though `npm install`
-  itself reported no errors. This isn't a standard npm subcommand, so a
-  plain npm without it just skips this step silently.
+- `start.bat` now best-effort runs `npm approve-scripts msnodesqlv8` and
+  `npm approve-scripts esbuild` in `server/` and `client/` before
+  installing. Some environments (e.g. a corporate npm policy) gate install
+  scripts behind an approval step; without it, `msnodesqlv8`'s `node-gyp
+  rebuild` install script never runs, so the native SQL Server driver
+  never compiles and every Connect/Test Connection attempt fails with
+  "native msnodesqlv8 driver is not built on this host" even though `npm
+  install` itself reported no errors. (An earlier attempt used `npm
+  approve-scripts --allow-scripts-pending`, which just re-lists pending
+  scripts instead of approving them — approval is per-package by name.)
+  This isn't a standard npm subcommand, so a plain npm without it just
+  skips this step silently.
 
 ### Fixed
 - **"Batch Requests/sec" and "Buffer Cache Hit Ratio" showed lifetime
