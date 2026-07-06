@@ -223,7 +223,19 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
   empty/populated distinction needed for always-present server vitals).
 - `App.tsx` — top-level state machine: checks `/api/connection/status` on
   mount, then renders either `ServerPicker` or the `Dashboard` (all 11 panel
-  components, driven by `useTriage`) once connected.
+  components, driven by `useTriage`) once connected. The dashboard layout is
+  three tiers, not one flat stack: (1) diagnosis banner + vitals (Overview,
+  Pressure, TempDB) always full-width/fixed-position at the top; (2)
+  Blocking and Consumers always full-width right below, since their tables
+  are the widest and most information-dense; (3) the remaining 7 panels
+  (LongOps, AgentJobs, Waits, LogSpace, IoLatency, Autogrowth, Deadlocks) are
+  built as `{ empty, node }` pairs, sorted non-empty-first (stable sort, so
+  ties keep their original relative order), and rendered into
+  `.reference-grid` — a CSS multi-column flow (`column-count: 2`, `1` under
+  900px), not a flexbox grid, so panels of very different heights pack
+  without leaving big gaps. Keep new "reference" panels in that array/sort
+  pattern rather than hardcoding them into the JSX, or the sort-to-top
+  behavior silently stops applying to them.
 - Styling is a single hand-written `styles.css` (no CSS framework/CSS-in-JS).
 
 ## Verifying changes

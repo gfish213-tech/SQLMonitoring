@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { api } from "./api";
 import { ServerPicker } from "./components/ServerPicker";
 import { DiagnosisSummary } from "./components/DiagnosisSummary";
@@ -28,6 +28,22 @@ function environmentClass(env?: string): string {
 
 function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; onDisconnect: () => void }) {
   const { data, error, loading, lastUpdated, refresh, autoRefresh, setAutoRefresh } = useTriage();
+
+  // Reference panels flow into a 2-column layout sorted so anything with data floats above the
+  // quiet "nothing to report" ones - the whole point is not making a DBA scroll past 7 empty
+  // cards to find the one that matters. Blocking/Consumers stay full-width above this since
+  // their tables are the widest and usually the most information-dense when something's wrong.
+  const reference: { empty: boolean; node: ReactNode }[] = data
+    ? [
+        { empty: data.longOps.length === 0, node: <LongOpsPanel key="longOps" longOps={data.longOps} /> },
+        { empty: data.agentJobs.length === 0, node: <AgentJobsPanel key="agentJobs" agentJobs={data.agentJobs} /> },
+        { empty: data.waits.length === 0, node: <WaitsPanel key="waits" waits={data.waits} /> },
+        { empty: data.logSpace.length === 0, node: <LogSpacePanel key="logSpace" logSpace={data.logSpace} /> },
+        { empty: data.ioLatency.length === 0, node: <IoLatencyPanel key="ioLatency" ioLatency={data.ioLatency} /> },
+        { empty: data.autogrowth.length === 0, node: <AutogrowthPanel key="autogrowth" autogrowth={data.autogrowth} /> },
+        { empty: data.deadlocks.length === 0, node: <DeadlocksPanel key="deadlocks" deadlocks={data.deadlocks} /> },
+      ].sort((a, b) => Number(a.empty) - Number(b.empty))
+    : [];
 
   return (
     <div className="page">
@@ -62,21 +78,13 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
         <main className="dashboard">
           <DiagnosisSummary data={data} />
           <OverviewBar overview={data.overview} />
-          <BlockingPanel blocking={data.blocking} />
-          <div className="dashboard-row">
-            <LongOpsPanel longOps={data.longOps} />
-            <AgentJobsPanel agentJobs={data.agentJobs} />
-          </div>
-          <ConsumersPanel consumers={data.consumers} />
-          <WaitsPanel waits={data.waits} />
           <div className="dashboard-row">
             <PressurePanel pressure={data.pressure} />
             <TempdbPanel tempdb={data.tempdb} />
           </div>
-          <LogSpacePanel logSpace={data.logSpace} />
-          <IoLatencyPanel ioLatency={data.ioLatency} />
-          <AutogrowthPanel autogrowth={data.autogrowth} />
-          <DeadlocksPanel deadlocks={data.deadlocks} />
+          <BlockingPanel blocking={data.blocking} />
+          <ConsumersPanel consumers={data.consumers} />
+          <div className="reference-grid">{reference.map((r) => r.node)}</div>
         </main>
       )}
     </div>

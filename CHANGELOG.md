@@ -43,6 +43,17 @@
   suspects is it" directly instead of requiring a manual scan of all 11
   panels.
 
+### Changed
+- **Dashboard re-layout** to cut down on scrolling and give panels with
+  actual data more visual priority: vitals (Overview, Pressure, TempDB) stay
+  compact and fixed at the top; Blocking and Consumers (the two widest,
+  most information-dense tables) stay full-width right below; the
+  remaining 7 reference panels (Backups, Agent Jobs, Waits, Log Space, I/O
+  Latency, Autogrowth, Deadlocks) now flow into a 2-column layout sorted so
+  panels with data float above the quiet "nothing to report" ones, instead
+  of all 11 panels stacking full-width in a single fixed vertical order
+  regardless of which ones actually have something to show.
+
 ## 1.2.0 — 2026-07-06
 
 Reworked into a live incident-triage tool ("why is the DB slow right now?")

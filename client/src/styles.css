@@ -289,6 +289,25 @@ button.primary {
   min-width: 0;
 }
 
+/* Reference panels flow newspaper-style instead of stacking full-width one after another, so
+   the (usually mostly-empty) panels take much less vertical space; break-inside keeps a panel
+   from being split across the two columns. */
+.reference-grid {
+  column-count: 2;
+  column-gap: 22px;
+}
+
+.reference-grid > .panel {
+  break-inside: avoid;
+  margin-bottom: 22px;
+}
+
+@media (max-width: 900px) {
+  .reference-grid {
+    column-count: 1;
+  }
+}
+
 .panel {
   background: var(--panel-bg);
   border: 1px solid var(--border);
