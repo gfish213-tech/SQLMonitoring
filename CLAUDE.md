@@ -19,13 +19,18 @@ Two independent npm projects under one thin root-level orchestration layer
 `node_modules`/lockfile).
 
 `start.bat` (repo root) is the double-click entry point for end users who
-don't want a terminal: `git pull`s the branch it's on first (auto-stashing
-and restoring any local tracked edits — e.g. a user's own additions to
-`server/config/servers.json` — around the pull so it doesn't block on
-them), runs `npm run install:all`, then `npm run serve` in its own window,
-polls `localhost:4000` until the server responds, and opens it in the
-default browser. Keep it in sync with the npm scripts below if those change
-(e.g. if the port or script names change).
+don't want a terminal: it force-syncs the local checkout to whatever branch
+is hardcoded as `BRANCH` in the script (currently
+`claude/sql-performance-monitor-ui-tcteaq` — the branch all fixes are
+pushed to), regardless of which branch happens to be checked out locally,
+auto-stashing and restoring any local tracked edits (e.g. a user's own
+additions to `server/config/servers.json`) around the switch/pull so
+neither blocks on the other. Then runs `npm run install:all`, then `npm run
+serve` in its own window, polls `localhost:4000` until the server
+responds, and opens it in the default browser. **Update the `BRANCH`
+value in `start.bat` if/when this work moves to a different branch (e.g.
+after merging to main)** — keep it in sync with the npm scripts too if
+those change (e.g. if the port or script names change).
 
 ```bash
 # From repo root — the primary way this app is meant to be run

@@ -2,6 +2,8 @@
 setlocal
 cd /d "%~dp0"
 
+set BRANCH=claude/sql-performance-monitor-ui-tcteaq
+
 git rev-parse --is-inside-work-tree >nul 2>&1
 if errorlevel 1 (
   echo Not a git repository - skipping update check.
@@ -15,10 +17,25 @@ if errorlevel 1 (
     git stash push -m "start.bat auto-stash" >nul
   )
 
-  git pull
+  git fetch origin %BRANCH% >nul 2>&1
+
+  rem Always make sure we're on %BRANCH% - this is where every update gets pushed, regardless
+  rem of which branch this checkout happened to be on (e.g. master with no tracking set up).
+  git rev-parse --verify %BRANCH% >nul 2>&1
+  if errorlevel 1 (
+    git checkout -t origin/%BRANCH%
+  ) else (
+    git checkout %BRANCH%
+  )
   if errorlevel 1 (
     echo.
-    echo git pull failed - continuing with the current local version.
+    echo Could not switch to %BRANCH% - continuing with the current local version.
+  ) else (
+    git pull origin %BRANCH%
+    if errorlevel 1 (
+      echo.
+      echo git pull failed - continuing with the current local version.
+    )
   )
 
   if not "%HASLOCAL%"=="0" (
