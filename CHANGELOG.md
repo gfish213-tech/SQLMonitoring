@@ -45,11 +45,15 @@
   24 hours", "excludes benign background waits", "only databases over 50%
   log used"). The Copy for AI text carries the same caveats inline in each
   section heading.
-- **"Jump to section" navigation**: a row of anchor links (Diagnosis,
-  Overview, Pressure, TempDB, Blocking, Consumers, and all 7 reference
-  panels) sits below the Refresh bar, and both stay pinned to the top of
-  the screen while scrolling (`position: sticky`) so the controls and the
-  nav are always reachable on what is otherwise a long page.
+- **Tabbed layout** replaces the single long scrolling page: only the
+  Diagnosis banner and the sticky Refresh bar/tab strip are always
+  visible; everything else — Overview (with Pressure & TempDB), Blocking,
+  Consumers, Backups, Agent Jobs, Waits, Log Space, IO Latency, Autogrowth,
+  Deadlocks — is one tab each, shown one at a time. Every tab with actual
+  data gets a small red dot so it's obvious at a glance which tabs are
+  worth checking without clicking through all of them. The diagnosis
+  banner's top finding (and each item in "N other potential factors") now
+  has a **View details →** button that jumps straight to the relevant tab.
 - `consumers.ts`'s per-session tempdb calculation had a paren mismatch that
   put the `* 8.0 / 1024` cast math inside `SUM(...)`'s own argument list,
   which made SQL Server parse it as a call to a nonexistent table function

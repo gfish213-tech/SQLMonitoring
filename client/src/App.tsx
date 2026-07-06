@@ -16,7 +16,7 @@ import { AutogrowthPanel } from "./components/AutogrowthPanel";
 import { DeadlocksPanel } from "./components/DeadlocksPanel";
 import { useTriage } from "./hooks/useTriage";
 import { buildSummaryText } from "./summary";
-import type { ConnectionMeta } from "./types";
+import type { ConnectionMeta, DashboardTab, TriageData } from "./types";
 
 function environmentClass(env?: string): string {
   const e = (env ?? "").toLowerCase();
@@ -27,9 +27,41 @@ function environmentClass(env?: string): string {
   return "";
 }
 
+// One entry per tab. `hasData` drives the small dot shown on the tab button, so a DBA can see
+// at a glance which tabs actually have something to look at without clicking through all of them
+// - the same "don't make me scan empty panels" goal the old sorted 2-column layout served.
+function buildTabs(data: TriageData): { key: DashboardTab; label: string; hasData: boolean; node: ReactNode }[] {
+  return [
+    {
+      key: "overview",
+      label: "Overview",
+      hasData: false,
+      node: (
+        <>
+          <OverviewBar overview={data.overview} />
+          <div className="dashboard-row">
+            <PressurePanel pressure={data.pressure} />
+            <TempdbPanel tempdb={data.tempdb} />
+          </div>
+        </>
+      ),
+    },
+    { key: "blocking", label: "Blocking", hasData: data.blocking.length > 0, node: <BlockingPanel blocking={data.blocking} /> },
+    { key: "consumers", label: "Consumers", hasData: data.consumers.length > 0, node: <ConsumersPanel consumers={data.consumers} /> },
+    { key: "longops", label: "Backups", hasData: data.longOps.length > 0, node: <LongOpsPanel longOps={data.longOps} /> },
+    { key: "agentjobs", label: "Agent Jobs", hasData: data.agentJobs.length > 0, node: <AgentJobsPanel agentJobs={data.agentJobs} /> },
+    { key: "waits", label: "Waits", hasData: data.waits.length > 0, node: <WaitsPanel waits={data.waits} /> },
+    { key: "logspace", label: "Log Space", hasData: data.logSpace.length > 0, node: <LogSpacePanel logSpace={data.logSpace} /> },
+    { key: "iolatency", label: "IO Latency", hasData: data.ioLatency.length > 0, node: <IoLatencyPanel ioLatency={data.ioLatency} /> },
+    { key: "autogrowth", label: "Autogrowth", hasData: data.autogrowth.length > 0, node: <AutogrowthPanel autogrowth={data.autogrowth} /> },
+    { key: "deadlocks", label: "Deadlocks", hasData: data.deadlocks.length > 0, node: <DeadlocksPanel deadlocks={data.deadlocks} /> },
+  ];
+}
+
 function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; onDisconnect: () => void }) {
   const { data, error, loading, lastUpdated, refresh, autoRefresh, setAutoRefresh } = useTriage();
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
 
   async function handleCopy() {
     if (!data) return;
@@ -38,21 +70,8 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
     setTimeout(() => setCopied(false), 2000);
   }
 
-  // Reference panels flow into a 2-column layout sorted so anything with data floats above the
-  // quiet "nothing to report" ones - the whole point is not making a DBA scroll past 7 empty
-  // cards to find the one that matters. Blocking/Consumers stay full-width above this since
-  // their tables are the widest and usually the most information-dense when something's wrong.
-  const reference: { empty: boolean; node: ReactNode }[] = data
-    ? [
-        { empty: data.longOps.length === 0, node: <LongOpsPanel key="longOps" longOps={data.longOps} /> },
-        { empty: data.agentJobs.length === 0, node: <AgentJobsPanel key="agentJobs" agentJobs={data.agentJobs} /> },
-        { empty: data.waits.length === 0, node: <WaitsPanel key="waits" waits={data.waits} /> },
-        { empty: data.logSpace.length === 0, node: <LogSpacePanel key="logSpace" logSpace={data.logSpace} /> },
-        { empty: data.ioLatency.length === 0, node: <IoLatencyPanel key="ioLatency" ioLatency={data.ioLatency} /> },
-        { empty: data.autogrowth.length === 0, node: <AutogrowthPanel key="autogrowth" autogrowth={data.autogrowth} /> },
-        { empty: data.deadlocks.length === 0, node: <DeadlocksPanel key="deadlocks" deadlocks={data.deadlocks} /> },
-      ].sort((a, b) => Number(a.empty) - Number(b.empty))
-    : [];
+  const tabs = data ? buildTabs(data) : [];
+  const active = tabs.find((t) => t.key === activeTab) ?? tabs[0];
 
   return (
     <div className="page">
@@ -86,20 +105,18 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
         </div>
 
         {data && (
-          <nav className="section-nav" aria-label="Jump to section">
-            <a href="#panel-diagnosis">Diagnosis</a>
-            <a href="#panel-overview">Overview</a>
-            <a href="#panel-pressure">Pressure</a>
-            <a href="#panel-tempdb">TempDB</a>
-            <a href="#panel-blocking">Blocking</a>
-            <a href="#panel-consumers">Consumers</a>
-            <a href="#panel-longops">Backups</a>
-            <a href="#panel-agentjobs">Agent Jobs</a>
-            <a href="#panel-waits">Waits</a>
-            <a href="#panel-logspace">Log Space</a>
-            <a href="#panel-iolatency">IO Latency</a>
-            <a href="#panel-autogrowth">Autogrowth</a>
-            <a href="#panel-deadlocks">Deadlocks</a>
+          <nav className="tab-bar" aria-label="Dashboard sections">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                className={t.key === activeTab ? "active" : ""}
+                onClick={() => setActiveTab(t.key)}
+                aria-current={t.key === activeTab}
+              >
+                {t.label}
+                {t.hasData && <span className="tab-dot" />}
+              </button>
+            ))}
           </nav>
         )}
       </div>
@@ -108,15 +125,8 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
 
       {data && (
         <main className="dashboard">
-          <DiagnosisSummary data={data} />
-          <OverviewBar overview={data.overview} />
-          <div className="dashboard-row">
-            <PressurePanel pressure={data.pressure} />
-            <TempdbPanel tempdb={data.tempdb} />
-          </div>
-          <BlockingPanel blocking={data.blocking} />
-          <ConsumersPanel consumers={data.consumers} />
-          <div className="reference-grid">{reference.map((r) => r.node)}</div>
+          <DiagnosisSummary data={data} onJumpToPanel={setActiveTab} />
+          {active?.node}
         </main>
       )}
     </div>

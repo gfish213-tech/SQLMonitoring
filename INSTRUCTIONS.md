@@ -104,26 +104,31 @@ to copy the entire snapshot — the diagnosis plus every panel's data, spelled
 out as plain text — to your clipboard, ready to paste into an AI chat if you
 want a second opinion or help interpreting something unfamiliar.
 
-A row of section links (Diagnosis, Overview, Pressure, TempDB, Blocking,
-Consumers, and the 7 reference panels) sits just below the refresh bar and
-stays pinned to the top of the screen as you scroll, so you can jump straight
-to any panel without scrolling back up first. Hover the small **ⓘ** next to
-any stat for a one-line explanation of what it means and how it's measured;
-panels with a filtering rule (e.g. "top 20 by CPU time") show that rule in
-their header at all times, not only when the panel happens to be empty.
-
 Right below the refresh bar, a **diagnosis banner** does the first pass for
 you: it scores every panel's data against fixed thresholds and states the
 single most likely cause in plain language (e.g. "Most likely cause: Blocking
-— Session 82 is blocking 2 other sessions"), with a "N other potential
-factors" expandable list for anything else that crossed a threshold. If
-nothing did, it says so instead of guessing — that's not the same as "the
-server isn't actually slow," just that nothing here crossed a concerning
-line. Treat it as a starting point, not a final verdict — the panel it points
-to still has the full detail.
+— Session 82 is blocking 2 other sessions"), with a **View details →** button
+that jumps straight to that panel's tab, and a "N other potential factors"
+expandable list (each with its own jump button) for anything else that
+crossed a threshold. If nothing did, it says so instead of guessing — that's
+not the same as "the server isn't actually slow," just that nothing here
+crossed a concerning line. Treat it as a starting point, not a final verdict
+— the panel it points to still has the full detail.
 
-Every section below states plainly when there's nothing to report, so ruling
-a cause in or out is a glance:
+Below that is a **tab strip** — Overview, Blocking, Consumers, Backups,
+Agent Jobs, Waits, Log Space, IO Latency, Autogrowth, Deadlocks — that stays
+pinned to the top of the screen as you scroll. Only one tab's content shows
+at a time; any tab with actual data gets a small red dot, so you can tell at
+a glance which ones are worth clicking into without checking all ten. Hover
+the small **ⓘ** next to any stat for a one-line explanation of what it means
+and how it's measured; panels with a filtering rule (e.g. "top 20 by CPU
+time") show that rule in their header at all times, not only when the panel
+happens to be empty.
+
+Every panel states plainly when there's nothing to report, so ruling a cause
+in or out is a glance. The **Overview** tab combines the always-on server
+vitals — CPU/session/request counts, CPU & Memory Pressure, TempDB
+Contention — and the rest are one tab each:
 
 - **Blocking & Long Transactions** — who's blocking whom, including a session
   sitting idle with an open transaction (a common, easy-to-miss cause).

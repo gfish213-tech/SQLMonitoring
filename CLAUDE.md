@@ -239,19 +239,27 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
   alignment) to carry meaning, since none of that survives being pasted into
   a chat. Update this alongside `types.ts` when an API response shape
   changes, the same as the panel components.
-- **Section anchors + jump nav**: `Section.tsx` takes an optional `id` prop;
-  every panel passes a stable `panel-*` id (Pressure/TempDB/Overview/
-  Diagnosis aren't `Section`-based, so their id is set directly on their own
-  root element). `App.tsx`'s `.sticky-toolbar` (refresh bar + a
-  `.section-nav` row of anchor links) stays pinned via `position: sticky` so
-  both the controls and the jump links remain reachable on a long page.
-  `scroll-margin-top` on `.panel`/`.diagnosis-banner`/`#panel-overview` in
-  `styles.css` offsets the jump target below the sticky toolbar's height —
-  if the toolbar's height changes (new button, wrapping nav row at a
-  different viewport), that value needs adjusting too, or a jump will land
-  with the heading hidden behind the toolbar. New panels need a new anchor
-  id here and a matching link in `App.tsx`'s nav, or they're unreachable
-  from it.
+- **Tabbed layout**: `App.tsx`'s `Dashboard` renders exactly one tab's
+  content at a time via `activeTab` state (`DashboardTab` in `types.ts`) —
+  only Diagnosis and the sticky toolbar are always visible; everything
+  else (Overview+Pressure+TempDB together as the "Overview" tab, then one
+  tab each for Blocking, Consumers, Backups, Agent Jobs, Waits, Log Space,
+  IO Latency, Autogrowth, Deadlocks) is tab-switched, not stacked on one
+  long page. `buildTabs(data)` is the single place that maps `TriageData`
+  to tab definitions — add a new tab there (and to `DashboardTab` in
+  `types.ts`) rather than hardcoding another panel into the JSX. Each tab
+  carries a `hasData` flag that renders a small red dot on its `.tab-bar`
+  button, so a DBA can see which tabs have something to look at without
+  clicking through all of them — this is what replaced the old
+  sorted-by-emptiness 2-column layout when panels stopped being co-mounted.
+  `DiagnosisSummary`'s `PANEL_TO_TAB` map turns a `Finding`'s `panel` label
+  into a `DashboardTab` so its "View details →" button (passed down as
+  `onJumpToPanel`) can switch straight to the relevant tab; a new
+  `diagnosis.ts` panel label needs an entry here too, or that finding just
+  won't get a jump button (harmless, but worth keeping in sync). Panel
+  components still carry their old `panel-*` `id`s from the pre-tab
+  jump-nav design; they're inert now (only one tab is ever mounted) but
+  harmless to leave for test/automation selectors.
 - **Explanatory hints**: `StatCard` takes an optional `hint` (rendered as a
   small "ⓘ" with a native `title` tooltip) for stats whose meaning isn't
   self-evident from the number alone (e.g. that Signal Wait % / Buffer

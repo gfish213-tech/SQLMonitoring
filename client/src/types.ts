@@ -143,6 +143,20 @@ export interface DeadlockEvent {
   xml: string;
 }
 
+// The dashboard's tab keys - shared between App.tsx (which owns the active tab) and
+// DiagnosisSummary.tsx (which maps a Finding's panel name to a tab for its "View details" link).
+export type DashboardTab =
+  | "overview"
+  | "blocking"
+  | "consumers"
+  | "longops"
+  | "agentjobs"
+  | "waits"
+  | "logspace"
+  | "iolatency"
+  | "autogrowth"
+  | "deadlocks";
+
 export interface TriageData {
   overview: OverviewStats;
   blocking: LeadBlocker[];
