@@ -7,11 +7,7 @@
   { "label": "sceboa92", "server": "sceboa92.cos.is.keysight.com", "environment": "Staging" },
   { "label": "sceboa93", "server": "sceboa93.sgp.is.keysight.com", "environment": "Staging" },
   { "label": "sceboa94", "server": "sceboa94.sgp.is.keysight.com", "environment": "Development" },
-  { "label": "sqldb-ofbcp-dev", "server": "sqldb-ofbcp-dev.is.keysight.com", "environment": "Development" },
-  { "label": "sqldb-ofbcp-prod", "server": "sqldb-ofbcp-prod.is.keysight.com", "environment": "Production" },
-  { "label": "wsceboadb6", "server": "wsceboadb6.sgp.is.keysight.com", "environment": "No Longer Supported" },
   { "label": "wsceboadb7", "server": "wsceboadb7.sgp.is.keysight.com", "environment": "Production" },
   { "label": "wsceboadb8", "server": "wsceboadb8.sgp.is.keysight.com", "environment": "Production" },
-  { "label": "wsgpboadb10", "server": "wsgpboadb10.sgp.is.keysight.com", "environment": "Production" },
-  { "label": "wsgpdba3", "server": "wsgpdba3.sgp.is.keysight.com", "environment": "" }
+  { "label": "wsgpboadb10", "server": "wsgpboadb10.sgp.is.keysight.com", "environment": "Production" }
 ]
