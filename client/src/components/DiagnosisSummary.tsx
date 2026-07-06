@@ -73,6 +73,9 @@ export function DiagnosisSummary({
           )}
         </div>
         <div className="diagnosis-detail">{top.detail}</div>
+        <div className="diagnosis-advice">
+          <span className="diagnosis-advice-label">💡 What to do:</span> {top.advice}
+        </div>
         {quickNote}
         {rest.length > 0 && (
           <details className="diagnosis-more">
@@ -90,6 +93,9 @@ export function DiagnosisSummary({
                         View →
                       </button>
                     )}
+                    <div className="diagnosis-advice diagnosis-advice-inline">
+                      <span className="diagnosis-advice-label">💡</span> {f.advice}
+                    </div>
                   </li>
                 );
               })}

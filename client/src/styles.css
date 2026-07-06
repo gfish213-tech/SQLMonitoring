@@ -564,6 +564,28 @@ tr.blocked-row {
   font-style: italic;
 }
 
+.diagnosis-advice {
+  font-size: 13px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 3px solid rgba(120, 180, 255, 0.5);
+  line-height: 1.45;
+}
+
+.diagnosis-advice-label {
+  font-weight: 600;
+}
+
+.diagnosis-advice-inline {
+  font-size: 12px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  padding: 5px 8px;
+  color: var(--text-dim);
+}
+
 .diagnosis-critical {
   border-color: rgba(255, 92, 92, 0.5);
   background: rgba(255, 92, 92, 0.08);

@@ -101,9 +101,13 @@ At the top, a **diagnosis banner** scores all 12 panels against thresholds
 states the single most likely cause in plain language, with any other factors
 that crossed a threshold available in a "N other potential factors"
 expandable list — each with a **View details →** button that jumps straight
-to the relevant tab. If nothing crossed a threshold, it says so plainly
-instead of guessing. This is a heuristic pointer to where to look first, not
-a replacement for reading the panel it points to.
+to the relevant tab. Every finding also carries a **💡 What to do** line — a
+concrete first-response action (who to contact, what to kill and what never
+to kill, whether it's a log backup or a shrink, which tab to check next) so
+the tool doesn't just name the cause but says what to actually do about it.
+If nothing crossed a threshold, it says so plainly instead of guessing. This
+is a heuristic pointer to where to look first, not a replacement for reading
+the panel it points to.
 
 Below that, a **tab strip** (pinned to the top while you scroll) switches
 between Overview, Blocking, Consumers, Backups, Agent Jobs, Waits, Log

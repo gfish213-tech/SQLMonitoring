@@ -120,10 +120,16 @@ single most likely cause in plain language (e.g. "Most likely cause: Blocking
 — Session 82 is blocking 2 other sessions"), with a **View details →** button
 that jumps straight to that panel's tab, and a "N other potential factors"
 expandable list (each with its own jump button) for anything else that
-crossed a threshold. If nothing did, it says so instead of guessing — that's
-not the same as "the server isn't actually slow," just that nothing here
-crossed a concerning line. Treat it as a starting point, not a final verdict
-— the panel it points to still has the full detail.
+crossed a threshold. Under every finding there's a **💡 What to do** line
+with a concrete first-response action: for a blocking chain, who to contact
+and what `KILL` would release (and roll back); for a full transaction log,
+to check `log_reuse_wait_desc` and take a *log backup* (not a shrink); for a
+rollback in progress, explicitly *don't* kill it; for CPU/memory pressure,
+which tab to open to find the runaway query — and so on. These are standard
+DBA first responses, not a substitute for judgment: read the panel before
+killing anything. If nothing crossed a threshold, the banner says so instead
+of guessing — that's not the same as "the server isn't actually slow," just
+that nothing here crossed a concerning line.
 
 Below that is a **tab strip** — Overview, Blocking, Consumers, Backups,
 Agent Jobs, Waits, Log Space, IO Latency, Autogrowth, Deadlocks, Indexes —

@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Added
+- **"What to do" advice on every diagnosis finding**: each detected cause
+  now carries a concrete first-response action written for mid-incident use
+  — e.g. an idle-with-open-transaction blocker says who to contact and that
+  `KILL <spid>` releases the chain (and what rolls back); a full transaction
+  log says to check `log_reuse_wait_desc` and take a **log backup**, not a
+  shrink; a rollback in progress says explicitly *not* to kill it; worker
+  thread exhaustion points at blocking as the usual root cause rather than
+  raising `max worker threads`. Shown as a 💡 highlighted box under the top
+  finding and under each item in the "other potential factors" list, and
+  included as "Suggested action" lines in the **Copy for AI** text.
 - **Two refresh modes — Quick Refresh and Full Refresh**: refreshing a
   server that's already struggling shouldn't itself add a heavy batch of
   queries. `GET /api/triage?mode=quick` (used on page load, the new **Quick

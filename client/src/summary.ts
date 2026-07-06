@@ -29,11 +29,13 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
     const [top, ...rest] = findings;
     lines.push(`Most likely cause (${top.severity}): ${top.panel} — ${top.title}`);
     lines.push(top.detail);
+    lines.push(`Suggested action: ${top.advice}`);
     if (rest.length > 0) {
       lines.push("");
       lines.push("Other potential factors:");
       for (const f of rest) {
         lines.push(`- [${f.severity}] ${f.panel}: ${f.title} — ${f.detail}`);
+        lines.push(`  Suggested action: ${f.advice}`);
       }
     }
   }

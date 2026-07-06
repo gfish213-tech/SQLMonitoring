@@ -341,7 +341,15 @@ quick-only snapshot.
 - `components/DiagnosisSummary.tsx` — renders the top `Finding` as a banner
   (color-coded by severity) at the top of the dashboard, with the rest in a
   collapsed `<details>` list; shows a plain "no obvious cause" state when
-  `diagnose()` returns nothing rather than showing an empty banner.
+  `diagnose()` returns nothing rather than showing an empty banner. Every
+  `Finding` carries a required `advice` string — a concrete first-response
+  action, written for mid-incident use (what to kill and what never to
+  kill, log backup vs. shrink, which tab to check next) — rendered as a
+  "💡 What to do" box under the top finding and inline under each item in
+  the expandable list, and as "Suggested action" lines in `summary.ts`'s
+  Copy-for-AI text. A new finding in `diagnosis.ts` must include advice;
+  keep it action-first and warn about destructive options' consequences
+  (e.g. KILL rolls back) rather than just naming the metric again.
 - `summary.ts` — `buildSummaryText(data, connection)` renders the whole
   snapshot (diagnosis + every panel) as plain text for the **Copy for AI**
   button in `App.tsx`'s refresh bar (`navigator.clipboard.writeText`, with a
