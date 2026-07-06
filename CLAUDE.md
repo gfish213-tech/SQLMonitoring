@@ -214,6 +214,14 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
   (color-coded by severity) at the top of the dashboard, with the rest in a
   collapsed `<details>` list; shows a plain "no obvious cause" state when
   `diagnose()` returns nothing rather than showing an empty banner.
+- `summary.ts` — `buildSummaryText(data, connection)` renders the whole
+  snapshot (diagnosis + every panel) as plain text for the **Copy for AI**
+  button in `App.tsx`'s refresh bar (`navigator.clipboard.writeText`, with a
+  transient "Copied!" label). Deliberately spells everything out in full
+  sentences rather than relying on visual layout (color, borders, table
+  alignment) to carry meaning, since none of that survives being pasted into
+  a chat. Update this alongside `types.ts` when an API response shape
+  changes, the same as the panel components.
 - `components/ServerPicker.tsx` — the connect screen: a `<select>` populated
   from `GET /api/connection/servers`, with an environment badge, replacing
   what used to be a manual connection form.

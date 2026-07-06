@@ -54,6 +54,12 @@
   of all 11 panels stacking full-width in a single fixed vertical order
   regardless of which ones actually have something to show.
 
+### Added
+- **Copy for AI** button in the refresh bar: copies the entire snapshot
+  (diagnosis findings plus every panel's data, spelled out as plain text)
+  to the clipboard in one click, ready to paste into an AI chat for a
+  second opinion or help interpreting something unfamiliar.
+
 ## 1.2.0 — 2026-07-06
 
 Reworked into a live incident-triage tool ("why is the DB slow right now?")

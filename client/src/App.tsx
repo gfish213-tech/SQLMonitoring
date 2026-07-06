@@ -15,6 +15,7 @@ import { IoLatencyPanel } from "./components/IoLatencyPanel";
 import { AutogrowthPanel } from "./components/AutogrowthPanel";
 import { DeadlocksPanel } from "./components/DeadlocksPanel";
 import { useTriage } from "./hooks/useTriage";
+import { buildSummaryText } from "./summary";
 import type { ConnectionMeta } from "./types";
 
 function environmentClass(env?: string): string {
@@ -28,6 +29,14 @@ function environmentClass(env?: string): string {
 
 function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; onDisconnect: () => void }) {
   const { data, error, loading, lastUpdated, refresh, autoRefresh, setAutoRefresh } = useTriage();
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    if (!data) return;
+    await navigator.clipboard.writeText(buildSummaryText(data, connection));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   // Reference panels flow into a 2-column layout sorted so anything with data floats above the
   // quiet "nothing to report" ones - the whole point is not making a DBA scroll past 7 empty
@@ -69,6 +78,9 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
           <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
           Auto-refresh every 20s
         </label>
+        <button onClick={handleCopy} disabled={!data}>
+          {copied ? "Copied!" : "Copy for AI"}
+        </button>
         {lastUpdated && <span className="last-updated">Last updated {lastUpdated.toLocaleTimeString()}</span>}
       </div>
 

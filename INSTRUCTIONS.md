@@ -96,7 +96,10 @@ There is **no automatic refresh by default** — this tool often gets used
 against a server that's already struggling, so it must not add its own
 recurring query load. Click **Refresh** for a fresh snapshot (one request that
 runs every check in parallel), or check **Auto-refresh every 20s** if you want
-to opt into polling while you watch something resolve.
+to opt into polling while you watch something resolve. Click **Copy for AI**
+to copy the entire snapshot — the diagnosis plus every panel's data, spelled
+out as plain text — to your clipboard, ready to paste into an AI chat if you
+want a second opinion or help interpreting something unfamiliar.
 
 Right below the refresh bar, a **diagnosis banner** does the first pass for
 you: it scores every panel's data against fixed thresholds and states the

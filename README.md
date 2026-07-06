@@ -79,7 +79,9 @@ dev` and `cd client && npm run dev` in two terminals instead — see
 already under load, so it must not add its own recurring query traffic
 without being asked. Click **Refresh** to pull a fresh snapshot (one HTTP
 request that runs all the checks below in parallel), or check **Auto-refresh
-every 20s** to opt into polling.
+every 20s** to opt into polling. **Copy for AI** copies the whole snapshot
+(diagnosis + every panel's data) to the clipboard as plain text, ready to
+paste into an AI chat for a second opinion or deeper analysis.
 
 ## What it shows
 
