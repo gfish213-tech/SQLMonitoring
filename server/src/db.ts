@@ -50,6 +50,23 @@ function assertSysadmin(row: SysadminCheckRow | undefined): asserts row is Sysad
   }
 }
 
+// The msnodesqlv8 native driver reports errors as plain objects ({ message, code, sqlstate, ... }),
+// not Error instances. mssql's ConnectionError only preserves .message when the source is
+// `instanceof Error`, so a plain-object error gets stringified wholesale into "[object Object]" and
+// its real diagnostic text is lost. Detect that and surface an actionable message instead.
+function normalizeConnectionError(err: unknown): Error {
+  if (err instanceof Error && err.message && err.message !== "[object Object]") {
+    return err;
+  }
+  const code = (err as { code?: string | number })?.code;
+  return new Error(
+    `Could not connect to SQL Server${code ? ` (code ${code})` : ""}. Check that the server name, ` +
+      "instance name, and port are correct, that SQL Server allows remote TCP connections, that the " +
+      "SQL Server Browser service is running if you specified an instance name, and that the ODBC " +
+      "driver on this host can reach it."
+  );
+}
+
 // Opens a pool using the caller's Windows identity (trusted connection) and verifies
 // it's a sysadmin before handing it back. Closes the pool itself on any failure.
 async function openVerifiedPool(input: ConnectionInput): Promise<{ pool: ConnectionPool; loginName: string }> {
@@ -65,7 +82,7 @@ async function openVerifiedPool(input: ConnectionInput): Promise<{ pool: Connect
     return { pool: newPool, loginName: result.recordset[0].login_name };
   } catch (err) {
     await newPool.close().catch(() => undefined);
-    throw err;
+    throw normalizeConnectionError(err);
   }
 }
 
