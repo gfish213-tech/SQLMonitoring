@@ -432,10 +432,23 @@ quick-only snapshot.
   fixed status set (`--good`/`--warning`/`--serious`/`--danger`, each with a
   `--status-*-rgb` triplet for building `rgba(var(--status-critical-rgb),
   0.15)`-style tints without repeating hex). Dark values live in `:root`
-  (this app's default appearance since it shipped); a `@media
-  (prefers-color-scheme: light)` block overrides the surface/ink/accent
-  variables for light — the status colors don't need a light override, since
-  the same four hexes are validated against both surfaces. `--serious` is
+  (this app's default appearance since it shipped); a `:root[data-theme="light"]`
+  attribute-selector block overrides the surface/ink/accent variables for
+  light — the status colors don't need a light override, since the same
+  four hexes are validated against both surfaces. `theme.ts`'s `useTheme()`
+  hook is the single place that sets `data-theme`: on first load it reads
+  `localStorage` (`sql-monitor-theme`), falling back to
+  `prefers-color-scheme` only if nothing's stored yet, then a `<ThemeToggle>`
+  button (rendered once in `App.tsx`, fixed top-right on every screen —
+  loading, `ServerPicker`, and `Dashboard`) flips it and persists the
+  explicit choice. The attribute is applied in `useLayoutEffect`, not
+  `useEffect`, specifically so a stored preference that differs from the
+  OS default never flashes the wrong theme for one frame before repainting.
+  `.app-header`, `.refresh-bar`, and `.tab-bar` all carry extra
+  `padding-right` to keep their own right-aligned content (Switch Server,
+  Last updated, wrapped tabs) clear of the fixed toggle button — widening
+  the toggle or moving it needs a matching padding change in all three, or
+  content will render underneath it. `--serious` is
   used only for the tab-bar "found something" dot, kept deliberately
   distinct from `--danger`/`--warning` so the tab strip never outshouts the
   diagnosis banner's own critical/warning coloring for the same finding.

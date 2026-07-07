@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added
+- **Manual light/dark theme toggle**: a small sun/moon button (top-right,
+  present on the connect screen and the dashboard alike) switches themes
+  on demand and remembers the choice in the browser (`localStorage`), no
+  longer relying solely on the OS/browser's reported color-scheme
+  preference. The stored choice applies before first paint, so it never
+  flashes the other theme on load.
+
 ### Changed
 - **Redesigned the interface on a validated color system**: replaced the
   ad hoc slate-blue dark theme with a proper light/dark palette (the app

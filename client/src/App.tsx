@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { api } from "./api";
 import { ServerPicker } from "./components/ServerPicker";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { DiagnosisSummary } from "./components/DiagnosisSummary";
 import { OverviewBar } from "./components/OverviewBar";
 import { BlockingPanel } from "./components/BlockingPanel";
@@ -198,16 +199,29 @@ export default function App() {
   }
 
   if (checkingStatus) {
-    return <div className="loading full-page">Loading...</div>;
+    return (
+      <>
+        <ThemeToggle />
+        <div className="loading full-page">Loading...</div>
+      </>
+    );
   }
 
   if (!connection) {
     return (
-      <div className="page centered">
-        <ServerPicker onConnected={setConnection} />
-      </div>
+      <>
+        <ThemeToggle />
+        <div className="page centered">
+          <ServerPicker onConnected={setConnection} />
+        </div>
+      </>
     );
   }
 
-  return <Dashboard connection={connection} onDisconnect={handleDisconnect} />;
+  return (
+    <>
+      <ThemeToggle />
+      <Dashboard connection={connection} onDisconnect={handleDisconnect} />
+    </>
+  );
 }
