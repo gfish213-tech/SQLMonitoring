@@ -49,9 +49,9 @@ export function TempdbPanel({ tempdb }: { tempdb: TempdbStats }) {
             <tbody>
               {tempdb.topAllocators.map((a) => (
                 <tr key={a.sessionId}>
-                  <td>{a.sessionId}</td>
+                  <td className="num">{a.sessionId}</td>
                   <td>{a.loginName ?? "-"}</td>
-                  <td>{a.tempdbAllocatedMb.toLocaleString()} MB</td>
+                  <td className="num">{a.tempdbAllocatedMb.toLocaleString()} MB</td>
                 </tr>
               ))}
             </tbody>

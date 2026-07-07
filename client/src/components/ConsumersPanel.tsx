@@ -32,19 +32,19 @@ export function ConsumersPanel({ consumers }: { consumers: ConsumerRow[] }) {
           <tbody>
             {consumers.map((c) => (
               <tr key={c.sessionId} className={c.blockingSessionId ? "blocked-row" : ""}>
-                <td>{c.sessionId}</td>
+                <td className="num">{c.sessionId}</td>
                 <td>{c.loginName}</td>
                 <td>
                   {c.hostName ?? "-"} / {c.programName ?? "-"}
                 </td>
                 <td>{c.databaseName ?? "-"}</td>
-                <td>{formatMs(c.cpuTimeMs)}</td>
-                <td>{formatMs(c.elapsedMs)}</td>
-                <td>{c.logicalReads.toLocaleString()}</td>
-                <td>{c.writes.toLocaleString()}</td>
-                <td>{c.tempdbMb !== null && c.tempdbMb > 0 ? `${c.tempdbMb} MB` : "-"}</td>
+                <td className="num">{formatMs(c.cpuTimeMs)}</td>
+                <td className="num">{formatMs(c.elapsedMs)}</td>
+                <td className="num">{c.logicalReads.toLocaleString()}</td>
+                <td className="num">{c.writes.toLocaleString()}</td>
+                <td className="num">{c.tempdbMb !== null && c.tempdbMb > 0 ? `${c.tempdbMb} MB` : "-"}</td>
                 <td>{c.waitType ?? "-"}</td>
-                <td>{c.blockingSessionId ?? "-"}</td>
+                <td className="num">{c.blockingSessionId ?? "-"}</td>
                 <td className="query-cell">
                   <code>{c.queryText ? truncate(c.queryText, 100) : "-"}</code>
                 </td>

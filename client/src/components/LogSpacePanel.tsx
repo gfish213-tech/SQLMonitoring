@@ -28,8 +28,8 @@ export function LogSpacePanel({ logSpace, vlfCounts }: { logSpace: LogSpaceRow[]
               {logSpace.map((row) => (
                 <tr key={row.databaseName} className={row.logUsedPercent > 90 ? "blocked-row" : ""}>
                   <td>{row.databaseName}</td>
-                  <td>{row.logSizeMb.toLocaleString()} MB</td>
-                  <td>{row.logUsedPercent}%</td>
+                  <td className="num">{row.logSizeMb.toLocaleString()} MB</td>
+                  <td className="num">{row.logUsedPercent}%</td>
                 </tr>
               ))}
             </tbody>
@@ -60,7 +60,7 @@ export function LogSpacePanel({ logSpace, vlfCounts }: { logSpace: LogSpaceRow[]
               {vlfCounts.map((row) => (
                 <tr key={row.databaseName} className={row.vlfCount > 1000 ? "blocked-row" : ""}>
                   <td>{row.databaseName}</td>
-                  <td>{row.vlfCount.toLocaleString()}</td>
+                  <td className="num">{row.vlfCount.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

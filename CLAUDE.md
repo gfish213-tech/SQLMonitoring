@@ -424,7 +424,28 @@ quick-only snapshot.
   without leaving big gaps. Keep new "reference" panels in that array/sort
   pattern rather than hardcoding them into the JSX, or the sort-to-top
   behavior silently stops applying to them.
-- Styling is a single hand-written `styles.css` (no CSS framework/CSS-in-JS).
+- Styling is a single hand-written `styles.css` (no CSS framework/CSS-in-JS),
+  built on a small set of CSS custom properties rather than hardcoded hex
+  scattered through selectors: `--bg`/`--panel-bg`/`--control-bg` (surfaces),
+  `--text`/`--text-dim`/`--text-muted` (ink), `--border`/`--gridline`,
+  `--accent` (categorical identity color — never used for status), and a
+  fixed status set (`--good`/`--warning`/`--serious`/`--danger`, each with a
+  `--status-*-rgb` triplet for building `rgba(var(--status-critical-rgb),
+  0.15)`-style tints without repeating hex). Dark values live in `:root`
+  (this app's default appearance since it shipped); a `@media
+  (prefers-color-scheme: light)` block overrides the surface/ink/accent
+  variables for light — the status colors don't need a light override, since
+  the same four hexes are validated against both surfaces. `--serious` is
+  used only for the tab-bar "found something" dot, kept deliberately
+  distinct from `--danger`/`--warning` so the tab strip never outshouts the
+  diagnosis banner's own critical/warning coloring for the same finding.
+  Numeric table columns use a `.num` class (`font-variant-numeric:
+  tabular-nums; text-align: right`) so figures align vertically; stat-tile
+  and hero values deliberately don't use it (proportional figures read
+  better at display size — `tabular-nums` on a lone number like `121` looks
+  loose). Don't reintroduce a raw hex inside a selector — add or reuse a
+  custom property instead, or a themed screenshot silently stops updating
+  with the other one.
 
 ## Verifying changes
 

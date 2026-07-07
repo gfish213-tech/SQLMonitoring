@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Changed
+- **Redesigned the interface on a validated color system**: replaced the
+  ad hoc slate-blue dark theme with a proper light/dark palette (the app
+  previously had `color-scheme: light dark` declared but no actual light
+  values — every color was a hardcoded dark hex). Status meaning is now
+  consistent everywhere: a fixed, CVD-validated critical/warning/good
+  triple (plus a "serious" step for tab dots, kept visually distinct from
+  the diagnosis banner's own critical/warning so the tab strip doesn't
+  compete with it) drives the diagnosis banner, stat card borders, env
+  badges, and table row flags — previously these each had their own
+  slightly different reds/oranges/greens. Numeric table columns (session
+  IDs, CPU/reads/writes, MB, percentages) now use `tabular-nums` and
+  right-alignment so figures line up vertically instead of ragged-left
+  text. Progress meters (backup/restore % complete) now show the fill on
+  a tinted track of the same hue rather than a plain dark box. Dark stays
+  the default appearance; light now actually renders correctly for anyone
+  whose OS reports a light color-scheme preference.
+
 ### Added
 - **"What to do" advice on every diagnosis finding**: each detected cause
   now carries a concrete first-response action written for mid-incident use

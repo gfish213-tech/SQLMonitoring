@@ -25,10 +25,10 @@ export function WaitsPanel({ waits }: { waits: CurrentWaitRow[] }) {
           <tbody>
             {waits.map((w, idx) => (
               <tr key={idx}>
-                <td>{w.sessionId}</td>
+                <td className="num">{w.sessionId}</td>
                 <td>{w.databaseName ?? "-"}</td>
                 <td>{w.waitType}</td>
-                <td>{formatMs(w.waitDurationMs)}</td>
+                <td className="num">{formatMs(w.waitDurationMs)}</td>
                 <td title={w.resourceDescription ?? undefined}>{w.resourceDescription ?? "-"}</td>
               </tr>
             ))}

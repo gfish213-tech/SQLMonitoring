@@ -29,10 +29,10 @@ export function AgentJobsPanel({ agentJobs }: { agentJobs: AgentJobRow[] }) {
               <tr key={idx}>
                 <td>{job.jobName}</td>
                 <td>{new Date(job.startTime).toLocaleString()}</td>
-                <td>{job.sessionId ?? "-"}</td>
-                <td>{job.cpuTimeMs !== null ? formatMs(job.cpuTimeMs) : "-"}</td>
-                <td>{job.logicalReads !== null ? job.logicalReads.toLocaleString() : "-"}</td>
-                <td>{job.writes !== null ? job.writes.toLocaleString() : "-"}</td>
+                <td className="num">{job.sessionId ?? "-"}</td>
+                <td className="num">{job.cpuTimeMs !== null ? formatMs(job.cpuTimeMs) : "-"}</td>
+                <td className="num">{job.logicalReads !== null ? job.logicalReads.toLocaleString() : "-"}</td>
+                <td className="num">{job.writes !== null ? job.writes.toLocaleString() : "-"}</td>
                 <td>{job.waitType ?? "-"}</td>
               </tr>
             ))}

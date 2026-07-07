@@ -29,7 +29,7 @@ export function AutogrowthPanel({ autogrowth }: { autogrowth: AutogrowthEvent[] 
                 <td title={row.fileName ?? undefined}>{row.fileName?.split("\\").pop() ?? "-"}</td>
                 <td>{row.eventType}</td>
                 <td>{new Date(row.startTime).toLocaleString()}</td>
-                <td>{formatMs(row.durationMs)}</td>
+                <td className="num">{formatMs(row.durationMs)}</td>
               </tr>
             ))}
           </tbody>

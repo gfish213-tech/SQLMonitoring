@@ -1,14 +1,48 @@
 :root {
   color-scheme: light dark;
-  --bg: #0f1420;
-  --panel-bg: #171d2b;
-  --border: #2a3244;
-  --text: #e6e9f0;
-  --text-dim: #8b93a7;
-  --accent: #4f8cff;
-  --danger: #ff5c5c;
-  --warning: #ffb84f;
+
+  /* Chrome & ink — dark is the default surface this app has always shipped;
+     see the light override below for prefers-color-scheme: light. */
+  --bg: #0d0d0d;
+  --panel-bg: #1a1a19;
+  --control-bg: #242422;
+  --text: #ffffff;
+  --text-dim: #c3c2b7;
+  --text-muted: #898781;
+  --border: rgba(255, 255, 255, 0.14);
+  --gridline: #2c2c2a;
+
+  /* Categorical slot 1 (blue) — used for identity/accent, never for status */
+  --accent: #3987e5;
+  --accent-rgb: 57, 135, 229;
+
+  /* Fixed status palette — same four hexes in both themes (validated against
+     both surfaces), so tints built from these rgb triplets never need to vary. */
+  --status-good-rgb: 12, 163, 12;
+  --status-warning-rgb: 250, 178, 25;
+  --status-serious-rgb: 236, 131, 90;
+  --status-critical-rgb: 208, 59, 59;
+  --good: #0ca30c;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --danger: #d03b3b;
+
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f9f9f7;
+    --panel-bg: #fcfcfb;
+    --control-bg: #eeeeec;
+    --text: #0b0b0b;
+    --text-dim: #52514e;
+    --text-muted: #898781;
+    --border: rgba(11, 11, 11, 0.12);
+    --gridline: #e1e0d9;
+    --accent: #2a78d6;
+    --accent-rgb: 42, 120, 214;
+  }
 }
 
 * {
@@ -84,7 +118,7 @@ code {
 .connection-form input[type="text"],
 .connection-form input:not([type="checkbox"]),
 .connection-form select {
-  background: #0f1420;
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 9px 10px;
@@ -102,27 +136,30 @@ code {
   padding: 3px 8px;
   border-radius: 4px;
   margin-left: 8px;
-  background: #232a3b;
+  background: var(--control-bg);
   color: var(--text-dim);
 }
 
+/* Production carries the critical status color — not because prod is "bad", but
+   because mistakes there cost the most, and that's the same "handle with care"
+   signal the status palette already carries. */
 .env-badge.env-prod {
-  background: rgba(255, 92, 92, 0.15);
-  color: #ff8080;
+  background: rgba(var(--status-critical-rgb), 0.16);
+  color: var(--danger);
 }
 
 .env-badge.env-staging {
-  background: rgba(255, 184, 79, 0.15);
+  background: rgba(var(--status-warning-rgb), 0.18);
   color: var(--warning);
 }
 
 .env-badge.env-dev {
-  background: rgba(79, 200, 130, 0.15);
-  color: #4fc882;
+  background: rgba(var(--status-good-rgb), 0.16);
+  color: var(--good);
 }
 
 .env-badge.env-deprecated {
-  background: rgba(139, 147, 167, 0.15);
+  background: rgba(137, 135, 129, 0.16);
   color: var(--text-dim);
   text-decoration: line-through;
 }
@@ -145,7 +182,7 @@ code {
 }
 
 button {
-  background: #232a3b;
+  background: var(--control-bg);
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: 6px;
@@ -176,15 +213,15 @@ button.primary {
 }
 
 .message.error {
-  background: rgba(255, 92, 92, 0.12);
+  background: rgba(var(--status-critical-rgb), 0.14);
   color: var(--danger);
-  border: 1px solid rgba(255, 92, 92, 0.3);
+  border: 1px solid rgba(var(--status-critical-rgb), 0.35);
 }
 
 .message.success {
-  background: rgba(79, 200, 130, 0.12);
-  color: #4fc882;
-  border: 1px solid rgba(79, 200, 130, 0.3);
+  background: rgba(var(--status-good-rgb), 0.14);
+  color: var(--good);
+  border: 1px solid rgba(var(--status-good-rgb), 0.35);
 }
 
 .app-header {
@@ -235,7 +272,7 @@ button.primary {
   gap: 8px;
   padding: 10px 28px;
   border-bottom: 1px solid var(--border);
-  background: rgba(23, 29, 43, 0.85);
+  background: var(--panel-bg);
 }
 
 .tab-bar button {
@@ -262,11 +299,14 @@ button.primary {
   color: white;
 }
 
+/* A found-something tab reads as "worth a look," not "on fire" — the serious
+   step (not critical) keeps it distinct from the diagnosis banner's own
+   critical/warning coloring so the tab strip doesn't out-shout the banner. */
 .tab-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--danger);
+  background: var(--serious);
   flex-shrink: 0;
 }
 
@@ -274,8 +314,8 @@ button.primary {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--text-dim);
-  opacity: 0.6;
+  background: var(--text-muted);
+  opacity: 0.7;
   flex-shrink: 0;
 }
 
@@ -322,16 +362,17 @@ button.primary {
 }
 
 .stat-card.danger {
-  border-color: rgba(255, 92, 92, 0.5);
+  border-color: rgba(var(--status-critical-rgb), 0.5);
 }
 
 .stat-card.warning {
-  border-color: rgba(255, 184, 79, 0.5);
+  border-color: rgba(var(--status-warning-rgb), 0.5);
 }
 
 .stat-value {
   font-size: 22px;
   font-weight: 600;
+  font-variant-numeric: proportional-nums;
 }
 
 .stat-card.danger .stat-value {
@@ -350,7 +391,7 @@ button.primary {
 
 .stat-hint {
   cursor: help;
-  border-bottom: 1px dotted var(--text-dim);
+  border-bottom: 1px dotted var(--text-muted);
 }
 
 .dashboard-row {
@@ -385,7 +426,7 @@ button.primary {
 }
 
 .panel-flagged {
-  border-color: rgba(255, 92, 92, 0.4);
+  border-color: rgba(var(--status-critical-rgb), 0.4);
 }
 
 .panel-hint {
@@ -406,8 +447,15 @@ table {
 th, td {
   text-align: left;
   padding: 8px 10px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--gridline);
   white-space: nowrap;
+}
+
+/* Numeric columns line up vertically in a table, unlike a stat-tile's
+   standalone value — this is exactly the case tabular-nums is for. */
+td.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 th {
@@ -424,7 +472,7 @@ th {
 }
 
 tr.blocked-row {
-  background: rgba(255, 92, 92, 0.08);
+  background: rgba(var(--status-critical-rgb), 0.08);
 }
 
 .empty, .empty-panel {
@@ -439,9 +487,11 @@ tr.blocked-row {
   font-size: 13px;
 }
 
+/* Meter: fill carries the accent, the unfilled track is a lighter step of the
+   same ramp (not a plain neutral box) so progress reads across the whole bar. */
 .wait-bar-track {
   height: 6px;
-  background: #0f1420;
+  background: rgba(var(--accent-rgb), 0.16);
   border-radius: 3px;
   overflow: hidden;
   margin-top: 8px;
@@ -463,7 +513,7 @@ tr.blocked-row {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px 14px;
-  background: rgba(255, 92, 92, 0.04);
+  background: rgba(var(--status-critical-rgb), 0.05);
 }
 
 .blocker-head, .longop-head {
@@ -521,7 +571,7 @@ tr.blocked-row {
 .deadlock-xml {
   margin-top: 10px;
   padding: 10px;
-  background: #0f1420;
+  background: var(--bg);
   border-radius: 6px;
   font-size: 11px;
   overflow-x: auto;
@@ -569,8 +619,8 @@ tr.blocked-row {
   margin-top: 8px;
   padding: 8px 10px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  border-left: 3px solid rgba(120, 180, 255, 0.5);
+  background: rgba(var(--accent-rgb), 0.08);
+  border-left: 3px solid rgba(var(--accent-rgb), 0.55);
   line-height: 1.45;
 }
 
@@ -587,8 +637,8 @@ tr.blocked-row {
 }
 
 .diagnosis-critical {
-  border-color: rgba(255, 92, 92, 0.5);
-  background: rgba(255, 92, 92, 0.08);
+  border-color: rgba(var(--status-critical-rgb), 0.5);
+  background: rgba(var(--status-critical-rgb), 0.08);
 }
 
 .diagnosis-critical .diagnosis-title {
@@ -596,8 +646,8 @@ tr.blocked-row {
 }
 
 .diagnosis-warning {
-  border-color: rgba(255, 184, 79, 0.5);
-  background: rgba(255, 184, 79, 0.08);
+  border-color: rgba(var(--status-warning-rgb), 0.5);
+  background: rgba(var(--status-warning-rgb), 0.08);
 }
 
 .diagnosis-warning .diagnosis-title {
@@ -605,17 +655,17 @@ tr.blocked-row {
 }
 
 .diagnosis-info {
-  border-color: rgba(79, 140, 255, 0.4);
-  background: rgba(79, 140, 255, 0.06);
+  border-color: rgba(var(--accent-rgb), 0.4);
+  background: rgba(var(--accent-rgb), 0.06);
 }
 
 .diagnosis-clear {
-  border-color: rgba(79, 200, 130, 0.4);
-  background: rgba(79, 200, 130, 0.06);
+  border-color: rgba(var(--status-good-rgb), 0.4);
+  background: rgba(var(--status-good-rgb), 0.06);
 }
 
 .diagnosis-clear .diagnosis-title {
-  color: #4fc882;
+  color: var(--good);
 }
 
 .diagnosis-more {

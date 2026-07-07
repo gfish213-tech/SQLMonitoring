@@ -25,9 +25,9 @@ export function VolumeSpacePanel({ volumeSpace }: { volumeSpace: VolumeSpaceRow[
                 <tr key={v.volumeMountPoint} className={v.freePercent < 10 ? "blocked-row" : ""}>
                   <td>{v.volumeMountPoint}</td>
                   <td>{v.logicalVolumeName || "-"}</td>
-                  <td>{v.totalGb.toLocaleString()} GB</td>
-                  <td>{v.freeGb.toLocaleString()} GB</td>
-                  <td>{v.freePercent}%</td>
+                  <td className="num">{v.totalGb.toLocaleString()} GB</td>
+                  <td className="num">{v.freeGb.toLocaleString()} GB</td>
+                  <td className="num">{v.freePercent}%</td>
                 </tr>
               ))}
             </tbody>

@@ -43,12 +43,12 @@ export function BlockingPanel({ blocking }: { blocking: LeadBlocker[] }) {
                 <tbody>
                   {b.blockedSessions.map((w) => (
                     <tr key={w.sessionId}>
-                      <td>{w.sessionId}</td>
-                      <td>{w.blockedBy}</td>
+                      <td className="num">{w.sessionId}</td>
+                      <td className="num">{w.blockedBy}</td>
                       <td>{w.loginName ?? "-"}</td>
                       <td>{w.databaseName ?? "-"}</td>
                       <td>{w.waitType ?? "-"}</td>
-                      <td>{formatMs(w.waitTimeMs)}</td>
+                      <td className="num">{formatMs(w.waitTimeMs)}</td>
                       <td title={w.waitResource ?? undefined}>{w.waitResource ?? "-"}</td>
                       <td className="query-cell">
                         <code>{w.queryText ? truncate(w.queryText, 90) : "-"}</code>

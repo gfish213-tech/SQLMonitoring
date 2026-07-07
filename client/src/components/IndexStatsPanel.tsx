@@ -32,9 +32,9 @@ export function IndexStatsPanel({ indexStats }: { indexStats: IndexStats }) {
                 <tr key={idx}>
                   <td>{row.databaseName}</td>
                   <td>{row.tableName}</td>
-                  <td>{row.totalScans.toLocaleString()}</td>
-                  <td>{row.totalSeeks.toLocaleString()}</td>
-                  <td>{row.totalLookups.toLocaleString()}</td>
+                  <td className="num">{row.totalScans.toLocaleString()}</td>
+                  <td className="num">{row.totalSeeks.toLocaleString()}</td>
+                  <td className="num">{row.totalLookups.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -64,8 +64,8 @@ export function IndexStatsPanel({ indexStats }: { indexStats: IndexStats }) {
                 <tr key={idx}>
                   <td>{row.databaseName}</td>
                   <td>{row.tableName}</td>
-                  <td>{row.indexId}</td>
-                  <td>{row.totalWrites.toLocaleString()}</td>
+                  <td className="num">{row.indexId}</td>
+                  <td className="num">{row.totalWrites.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
