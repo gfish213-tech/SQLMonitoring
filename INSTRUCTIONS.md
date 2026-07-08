@@ -42,12 +42,16 @@ Edit `server/config/servers.json` — a plain JSON array, one entry per server:
 
 ## 3. Install dependencies and run
 
-**Easiest: double-click `start.bat`** in the repo root. It installs
-dependencies on first run (if `server/node_modules` is missing), builds and
-starts the app, waits for it to come up, then opens
-`http://localhost:4000` in your default browser automatically. A console
-window titled "SQL Performance Monitor" stays open while it's running —
-closing that window stops the server.
+**Easiest: double-click `start.bat`** in the repo root. It first checks that
+Git, Node.js, and npm are actually installed and stops immediately with a
+specific message (and where to download it) if any is missing, instead of
+failing partway through with a cryptic error. It also does a best-effort
+check for the ODBC driver and prints a warning (not a hard stop) if it
+can't find one. Then it installs dependencies on first run (if
+`server/node_modules` is missing), builds and starts the app, waits for it
+to come up, then opens `http://localhost:4000` in your default browser
+automatically. A console window titled "SQL Performance Monitor" stays open
+while it's running — closing that window stops the server.
 
 Or from the command line, from the repo root:
 
@@ -57,8 +61,11 @@ npm run serve         # builds the client, then starts the one Express process
 ```
 
 Open `http://localhost:4000`. `npm install` in `server/` compiles the native
-`msnodesqlv8` driver — if the build tools or ODBC driver above aren't
-installed, this step fails with a node-gyp/compiler error.
+`msnodesqlv8` driver — if the build tools above aren't installed, this step
+fails with a node-gyp/compiler error (`start.bat` names this as the likely
+cause if it happens; from the command line you'll see the raw node-gyp
+output instead). The ODBC driver isn't needed until you actually try to
+connect — its absence won't fail `npm install`.
 
 Set `PORT` to change the port (`PORT=8080 npm start` from `server/`).
 

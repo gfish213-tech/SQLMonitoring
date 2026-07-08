@@ -3,6 +3,19 @@
 ## 1.5.0 — 2026-07-08
 
 ### Added
+- **`start.bat` checks prerequisites upfront**: Git, Node.js, and npm are
+  verified on `PATH` before anything else runs, failing fast with a
+  specific, named message and a download link if one is missing — a
+  missing tool previously only surfaced as whatever raw, often cryptic
+  error `npm`/`node-gyp` happened to print, wrapped in a generic
+  "install failed". A best-effort, non-fatal registry check also warns
+  if neither "ODBC Driver 17" nor "18 for SQL Server" can be found
+  (this one doesn't stop the script — the app's own Connect/Test
+  Connection error is already clear if this check has a false negative).
+  If `npm install` itself still fails, the error message now names the
+  most common cause (a missing C++ build toolchain or Python, both
+  required by node-gyp to compile the native driver) instead of just
+  pointing at the scrollback above it.
 - **Per-tab refresh**: a "↻ Refresh &lt;Tab&gt;" button now sits above every
   tab's content and re-runs only that tab's query — one query (or two, for
   Overview and Log Space), strictly less load than even Quick Refresh's

@@ -55,9 +55,11 @@ needs something different from the defaults.
 
 ## Running it
 
-Double-click `start.bat` in the repo root — it installs dependencies on
-first run, builds, starts the server, and opens `http://localhost:4000` in
-your browser automatically.
+Double-click `start.bat` in the repo root — it checks the Requirements
+below are actually installed (and fails fast with a specific, named
+message if not, rather than a cryptic error partway through), installs
+dependencies on first run, builds, starts the server, and opens
+`http://localhost:4000` in your browser automatically.
 
 Or from the command line:
 

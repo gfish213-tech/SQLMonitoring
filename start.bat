@@ -6,6 +6,53 @@ set REPO_URL=https://github.com/gfish213-tech/SQLMonitoring.git
 set BRANCH=claude/sql-performance-monitor-ui-tcteaq
 set REPO_DIR=SQLMonitoring
 
+echo Checking prerequisites...
+
+rem Fail fast with a specific, named reason instead of letting a missing tool surface later as a
+rem generic "install failed" wrapped around whatever cryptic error npm/git/node-gyp produced.
+where git >nul 2>&1
+if errorlevel 1 (
+  echo.
+  echo Git is not installed, or not on PATH. Install it from https://git-scm.com/downloads and
+  echo run start.bat again.
+  pause
+  exit /b 1
+)
+
+where node >nul 2>&1
+if errorlevel 1 (
+  echo.
+  echo Node.js is not installed, or not on PATH. Install Node.js 18+ from https://nodejs.org and
+  echo run start.bat again.
+  pause
+  exit /b 1
+)
+
+where npm >nul 2>&1
+if errorlevel 1 (
+  echo.
+  echo npm was not found even though Node.js appears to be installed - this usually means a broken
+  echo Node.js install. Reinstall Node.js from https://nodejs.org and run start.bat again.
+  pause
+  exit /b 1
+)
+
+rem Best-effort, non-fatal: the ODBC driver is a runtime dependency (npm install succeeds without
+rem it), so this is a heads-up rather than a hard stop - the app's own Connect/Test Connection
+rem error is already clear if this check has a false negative on some Windows/installer version.
+reg query "HKLM\SOFTWARE\ODBC\ODBCINST.INI\ODBC Driver 18 for SQL Server" >nul 2>&1
+if errorlevel 1 (
+  reg query "HKLM\SOFTWARE\ODBC\ODBCINST.INI\ODBC Driver 17 for SQL Server" >nul 2>&1
+  if errorlevel 1 (
+    echo.
+    echo Warning: could not detect "ODBC Driver 17 for SQL Server" or "18 for SQL Server"
+    echo installed. The app will still start, but Connect / Test Connection will fail until one
+    echo is installed - search Microsoft's "ODBC Driver for SQL Server" download page if that
+    echo happens.
+    echo.
+  )
+)
+
 rem Self-bootstrap: if this copy of start.bat isn't already sitting inside the project (e.g. it
 rem was handed to someone as a single file), clone the repo into a subfolder next to it and
 rem continue from there, so this one file is all that's needed to get started.
@@ -104,7 +151,10 @@ echo Installing / updating dependencies...
 call npm run install:all
 if errorlevel 1 (
   echo.
-  echo Dependency install failed. See errors above.
+  echo Dependency install failed. See errors above for the exact cause - the most common one is a
+  echo missing C++ build toolchain or Python, both required by node-gyp to compile the native
+  echo msnodesqlv8 SQL Server driver. On Windows, install "Visual Studio Build Tools" with the
+  echo "Desktop development with C++" workload, plus Python 3, then run start.bat again.
   pause
   exit /b 1
 )

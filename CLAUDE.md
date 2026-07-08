@@ -19,13 +19,26 @@ Two independent npm projects under one thin root-level orchestration layer
 `node_modules`/lockfile).
 
 `start.bat` (repo root) is the double-click entry point for end users who
-don't want a terminal. It's self-bootstrapping: if it's handed out as a
-standalone file (no `server/package.json` next to it), it clones the repo
-into a `SQLMonitoring` subfolder first, then continues from there — so
-sharing this one file is enough to get a new machine running, provided
-Git, Node.js, the C++ build toolchain, and the ODBC driver are already
-installed there (see Requirements below) and the machine has access to
-clone the repo. Once inside a real checkout, it force-syncs to whatever branch
+don't want a terminal. Before doing anything else it checks Git, Node.js,
+and npm are on `PATH` (`where`) and fails fast with a specific, named
+message and a download link if any is missing — otherwise a missing tool
+would only surface later as whatever raw, often cryptic error `npm`/
+`node-gyp` happens to print, wrapped in a generic "install failed". It
+also does a best-effort, non-fatal registry check
+(`HKLM\SOFTWARE\ODBC\ODBCINST.INI\...`) for "ODBC Driver 17/18 for SQL
+Server" and prints a warning (not a hard stop — this check can
+false-negative, and the app's own Connect/Test Connection error is
+already clear) if neither is found. It's self-bootstrapping: if it's
+handed out as a standalone file (no `server/package.json` next to it), it
+clones the repo into a `SQLMonitoring` subfolder first, then continues
+from there — so sharing this one file is enough to get a new machine
+running, provided Git, Node.js, the C++ build toolchain, and the ODBC
+driver are already installed there (see Requirements below) and the
+machine has access to clone the repo. If `npm install` itself fails (most
+often a missing C++ build toolchain or Python — both required by
+node-gyp to compile the native driver), the error message names that as
+the likely cause rather than just pointing at the scrollback. Once inside
+a real checkout, it force-syncs to whatever branch
 is hardcoded as `BRANCH` in the script (currently
 `claude/sql-performance-monitor-ui-tcteaq` — the branch all fixes are
 pushed to), regardless of which branch happens to be checked out locally,
