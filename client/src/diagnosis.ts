@@ -190,18 +190,34 @@ export function diagnose(data: TriageData): Finding[] {
 
   for (const io of data.ioLatency ?? []) {
     const worstAvg = Math.max(io.avgReadLatencyMs ?? 0, io.avgWriteLatencyMs ?? 0);
-    const worstCurrent = Math.max(io.currentReadLatencyMs ?? 0, io.currentWriteLatencyMs ?? 0);
-    const worst = Math.max(worstAvg, worstCurrent);
-    const currentlyWorse = worstCurrent > worstAvg;
+    const currentValues = [io.currentReadLatencyMs, io.currentWriteLatencyMs].filter((v): v is number => v != null);
+    const worstCurrent = currentValues.length > 0 ? Math.max(...currentValues) : null;
+    const currentlyWorse = worstCurrent != null && worstCurrent > worstAvg;
+    // A live 1-second sample that actually saw I/O (worstCurrent isn't null - there's no reading
+    // to trust otherwise) and came back healthy, while the since-restart average is still what's
+    // driving severity, means the average is very likely dragging on stale history from before
+    // whatever caused it - the average has no way to reset except a SQL Server restart, so a
+    // genuinely-fixed problem would otherwise keep reading as an active critical forever. Downgrade
+    // instead of silently clearing it, since a single 1-second sample could still get lucky.
+    const currentlyHealthy = worstCurrent != null && worstCurrent <= 15;
+    const historicalOnly = !currentlyWorse && currentlyHealthy;
+    const worst = currentlyWorse ? worstCurrent! : worstAvg;
     findings.push({
-      severity: worst > 100 ? "critical" : "warning",
+      severity: historicalOnly ? "info" : worst > 100 ? "critical" : "warning",
       panel: "Disk latency",
-      title: `${io.databaseName}: ${worst.toFixed(0)}ms ${currentlyWorse ? "in the last ~1s" : "average"} I/O latency`,
-      detail: `${io.fileName} — normal is under ~15ms; this can cause broad slowness for anything touching this file.${
-        currentlyWorse ? " Worse right now than its since-restart average, so this is an active spike, not old history." : ""
+      title: `${io.databaseName}: ${worst.toFixed(0)}ms ${currentlyWorse ? "in the last ~1s" : "average"} I/O latency${
+        historicalOnly ? " (currently healthy)" : ""
       }`,
-      advice:
-        "First rule out that SQL Server is the one hammering the disk: is a backup running (Backups tab), an ETL job (Agent Jobs), or a huge scan (Consumers tab)? Also check the host for antivirus scanning database files (they should be excluded) and, on a VM/SAN, whether a neighbor or storage-side job is eating the shared array. If latency is high with *low* IOPS/throughput, the storage itself is slow — take the IOPS and MB/s figures from the IO Latency tab to your storage team.",
+      detail: `${io.fileName} — normal is under ~15ms; this can cause broad slowness for anything touching this file.${
+        currentlyWorse
+          ? " Worse right now than its since-restart average, so this is an active spike, not old history."
+          : historicalOnly
+            ? ` The last ~1s reading is healthy (${worstCurrent!.toFixed(1)}ms) — this may already be resolved; the average won't drop until the next SQL Server restart.`
+            : ""
+      }`,
+      advice: historicalOnly
+        ? "The live reading is healthy right now, so this probably isn't an active cause of the current slowness - the since-restart average just hasn't had a chance to recover (it never does without a restart). Worth a second look only if the server still feels slow with nothing else explaining it."
+        : "First rule out that SQL Server is the one hammering the disk: is a backup running (Backups tab), an ETL job (Agent Jobs), or a huge scan (Consumers tab)? Also check the host for antivirus scanning database files (they should be excluded) and, on a VM/SAN, whether a neighbor or storage-side job is eating the shared array. If latency is high with *low* IOPS/throughput, the storage itself is slow — take the IOPS and MB/s figures from the IO Latency tab to your storage team.",
     });
   }
 

@@ -449,8 +449,17 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
   checks the worse of the since-restart average and the 1-second-delta
   current reading, and says so ("Worse right now than its since-restart
   average...") when the current reading is what actually crossed the
-  threshold. Adjust thresholds here, not in the component, if a panel's
-  diagnosis reads as over/under-sensitive.
+  threshold. The reverse case matters just as much: if the *average* is
+  what's driving severity but the current 1-second sample genuinely saw
+  I/O and came back healthy (≤15ms), that average is almost certainly
+  dragging on stale history from a since-fixed problem — the average has
+  no way to recover except a server restart, so without this check a
+  resolved issue would keep reading as an active critical finding
+  indefinitely. This case downgrades to `info` and the title gets a
+  "(currently healthy)" suffix rather than clearing the finding entirely
+  (a single 1-second sample could still get lucky, so it stays visible,
+  just de-prioritized). Adjust thresholds here, not in the component, if
+  a panel's diagnosis reads as over/under-sensitive.
 - `components/DiagnosisSummary.tsx` — renders the top `Finding` as a banner
   (color-coded by severity) at the top of the dashboard, with the rest in a
   collapsed `<details>` list; shows a plain "no obvious cause" state when

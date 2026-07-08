@@ -93,6 +93,20 @@
   joins need one) — a "-" there is expected, not a bug.
 
 ### Fixed
+- **A fixed disk latency problem kept reading as an active critical
+  finding indefinitely**: the diagnosis flags the worse of a file's
+  since-restart average latency or its 1-second-delta current reading —
+  correct for catching a live spike the average hasn't caught up to yet,
+  but the reverse case wasn't handled: once the actual problem is fixed,
+  the average stays elevated (it only resets on a SQL Server restart)
+  even though the live reading is now healthy, so the finding never
+  cleared no matter how long the fix had been in place. Now, when the
+  average is what's driving severity but the current 1-second sample
+  genuinely saw I/O and came back healthy (≤15ms), the finding downgrades
+  to `info` with a "(currently healthy)" title suffix and detail text
+  explaining the average won't drop until the next restart — instead of
+  disappearing outright (a single lucky sample could still be
+  coincidence) or continuing to read as an unresolved critical.
 - **Table headers didn't line up with their numeric columns**: every
   numeric column right-aligns its data (`.num`, so figures line up
   vertically), but the header cell above it was left-aligned by default,
