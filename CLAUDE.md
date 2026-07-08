@@ -473,7 +473,13 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
   to only the code comments.
 - `components/ServerPicker.tsx` — the connect screen: a `<select>` populated
   from `GET /api/connection/servers`, with an environment badge, replacing
-  what used to be a manual connection form.
+  what used to be a manual connection form. The list is sorted
+  Development → Staging → Production (anything else, e.g. "No Longer
+  Supported", sorts after Production), alphabetically by label within
+  each group — `servers.json`'s own order is not the display order.
+  Deliberately Dev-first: it's also what ends up pre-selected on load, so
+  the default pick is the safest one, not whatever happened to be first
+  in the config file.
 - `components/ConsumersPanel.tsx` — client-side sort (click a column header
   to sort by it, click again to reverse; nulls always sort last regardless
   of direction) over whatever `consumers` rows the server sent — this is

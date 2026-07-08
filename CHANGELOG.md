@@ -3,6 +3,13 @@
 ## 1.5.0 — 2026-07-08
 
 ### Added
+- **Server picker sorted Development → Staging → Production**: the
+  dropdown on the connect screen no longer follows `servers.json`'s raw
+  order — it's grouped Development first, then Staging, then Production
+  last (anything else, e.g. a deprecated server, sorts after Production),
+  alphabetically by label within each group. Development is also what's
+  pre-selected on load, so the default pick is the lowest-stakes one
+  rather than whatever happened to be listed first in the config file.
 - **`start.bat` checks prerequisites upfront**: Git, Node.js, and npm are
   verified on `PATH` before anything else runs, failing fast with a
   specific, named message and a download link if one is missing — a

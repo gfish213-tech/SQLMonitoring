@@ -37,9 +37,13 @@ directly (no rebuild needed, it's re-read on every request):
 
 `environment` drives a color-coded badge (Production/Staging/Development/
 deprecated) so it's obvious at a glance which kind of server you're looking at.
-Optional per-entry overrides: `database` (default `master`), `port`,
-`instanceName`, `encrypt`, `trustServerCertificate` — useful if one server
-needs something different from the defaults.
+The dropdown always lists Development first, then Staging, then Production
+last (alphabetically within each group) regardless of the order in the JSON
+file — Development is also what's pre-selected by default, so picking the
+wrong server by habit defaults to the safest one, not whichever happened to
+be listed first. Optional per-entry overrides: `database` (default `master`),
+`port`, `instanceName`, `encrypt`, `trustServerCertificate` — useful if one
+server needs something different from the defaults.
 
 ## Requirements
 

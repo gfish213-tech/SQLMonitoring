@@ -33,6 +33,10 @@ Edit `server/config/servers.json` — a plain JSON array, one entry per server:
 - `label` and `environment` only affect the dropdown display (environment
   drives a color-coded badge — Production shows red, Staging orange,
   Development green, anything with "no longer" in it shows struck-through).
+  The dropdown itself is always sorted Development first, then Staging,
+  then Production last (alphabetically by label within each group) no
+  matter what order they're listed in this file, and Development is
+  pre-selected by default.
 - `server` is the hostname the app actually connects to.
 - Optional per-entry fields if a particular server needs something
   non-default: `database` (default `master`), `port`, `instanceName` (for a

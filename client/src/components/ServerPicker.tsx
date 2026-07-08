@@ -11,6 +11,21 @@ function environmentClass(env?: string): string {
   return "";
 }
 
+// Dev first (safest to pick by accident), then Staging, then Production last (the one place a
+// wrong click costs the most) - anything unrecognized (including "No Longer Supported") sorts
+// after Production rather than being interleaved with real environments.
+function environmentRank(env?: string): number {
+  const e = (env ?? "").toLowerCase();
+  if (e.includes("dev")) return 0;
+  if (e.includes("staging")) return 1;
+  if (e.includes("prod")) return 2;
+  return 3;
+}
+
+function sortServers(list: ServerListEntry[]): ServerListEntry[] {
+  return [...list].sort((a, b) => environmentRank(a.environment) - environmentRank(b.environment) || a.label.localeCompare(b.label));
+}
+
 export function ServerPicker({ onConnected }: { onConnected: (meta: ConnectionMeta) => void }) {
   const [servers, setServers] = useState<ServerListEntry[] | null>(null);
   const [selected, setSelected] = useState("");
@@ -22,8 +37,9 @@ export function ServerPicker({ onConnected }: { onConnected: (meta: ConnectionMe
     api
       .servers()
       .then((list) => {
-        setServers(list);
-        if (list.length > 0) setSelected(list[0].server);
+        const sorted = sortServers(list);
+        setServers(sorted);
+        if (sorted.length > 0) setSelected(sorted[0].server);
       })
       .catch((err) => setLoadError((err as Error).message));
   }, []);
