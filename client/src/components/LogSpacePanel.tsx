@@ -20,8 +20,8 @@ export function LogSpacePanel({ logSpace, vlfCounts }: { logSpace: LogSpaceRow[]
             <thead>
               <tr>
                 <th>Database</th>
-                <th>Log Size</th>
-                <th>Used</th>
+                <th className="num">Log Size</th>
+                <th className="num">Used</th>
               </tr>
             </thead>
             <tbody>
@@ -53,7 +53,7 @@ export function LogSpacePanel({ logSpace, vlfCounts }: { logSpace: LogSpaceRow[]
             <thead>
               <tr>
                 <th>Database</th>
-                <th>VLF Count</th>
+                <th className="num">VLF Count</th>
               </tr>
             </thead>
             <tbody>

@@ -37,12 +37,12 @@ export function BlockingPanel({ blocking }: { blocking: LeadBlocker[] }) {
               <table>
                 <thead>
                   <tr>
-                    <th>Waiting Session</th>
-                    <th>Waiting On</th>
+                    <th className="num">Waiting Session</th>
+                    <th className="num">Waiting On</th>
                     <th>Login</th>
                     <th>DB</th>
                     <th>Wait Type</th>
-                    <th>Wait Time</th>
+                    <th className="num">Wait Time</th>
                     <th>Resource</th>
                     <th>Query</th>
                   </tr>

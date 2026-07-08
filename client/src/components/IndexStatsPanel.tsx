@@ -22,9 +22,9 @@ export function IndexStatsPanel({ indexStats }: { indexStats: IndexStats }) {
               <tr>
                 <th>Database</th>
                 <th>Table</th>
-                <th>Scans</th>
-                <th>Seeks</th>
-                <th>Lookups</th>
+                <th className="num">Scans</th>
+                <th className="num">Seeks</th>
+                <th className="num">Lookups</th>
               </tr>
             </thead>
             <tbody>
@@ -55,8 +55,8 @@ export function IndexStatsPanel({ indexStats }: { indexStats: IndexStats }) {
               <tr>
                 <th>Database</th>
                 <th>Table</th>
-                <th>Index ID</th>
-                <th>Writes</th>
+                <th className="num">Index ID</th>
+                <th className="num">Writes</th>
               </tr>
             </thead>
             <tbody>

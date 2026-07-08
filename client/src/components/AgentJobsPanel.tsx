@@ -17,10 +17,10 @@ export function AgentJobsPanel({ agentJobs }: { agentJobs: AgentJobRow[] }) {
             <tr>
               <th>Job</th>
               <th>Started</th>
-              <th>Session</th>
-              <th>CPU</th>
-              <th>Logical Reads</th>
-              <th>Writes</th>
+              <th className="num">Session</th>
+              <th className="num">CPU</th>
+              <th className="num">Logical Reads</th>
+              <th className="num">Writes</th>
               <th>Wait</th>
             </tr>
           </thead>

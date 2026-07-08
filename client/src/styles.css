@@ -521,6 +521,13 @@ th {
   letter-spacing: 0.03em;
 }
 
+/* A numeric column's header must right-align the same way its td.num cells do — otherwise the
+   header label sits over the left edge of a column of right-aligned numbers, which reads as
+   misaligned even though every row lines up correctly with every other row. */
+th.num {
+  text-align: right;
+}
+
 .sortable-th {
   padding: 0;
 }
@@ -538,6 +545,10 @@ th {
   text-transform: inherit;
   letter-spacing: inherit;
   white-space: nowrap;
+}
+
+.sortable-th.num .sort-button {
+  justify-content: flex-end;
 }
 
 .sort-button:hover {

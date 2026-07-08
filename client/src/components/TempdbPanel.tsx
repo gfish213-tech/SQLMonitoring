@@ -41,9 +41,9 @@ export function TempdbPanel({ tempdb }: { tempdb: TempdbStats }) {
           <table>
             <thead>
               <tr>
-                <th>Session</th>
+                <th className="num">Session</th>
                 <th>Login</th>
-                <th>TempDB Used</th>
+                <th className="num">TempDB Used</th>
               </tr>
             </thead>
             <tbody>

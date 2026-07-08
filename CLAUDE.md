@@ -615,7 +615,13 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
   tabular-nums; text-align: right`) so figures align vertically; stat-tile
   and hero values deliberately don't use it (proportional figures read
   better at display size — `tabular-nums` on a lone number like `121` looks
-  loose). Don't reintroduce a raw hex inside a selector — add or reuse a
+  loose). `th.num` mirrors the same right-alignment for the header cell
+  above a `.num` column (and `.sortable-th.num .sort-button` for
+  `ConsumersPanel.tsx`'s clickable headers) — every `<td className="num">`
+  needs its column's `<th>` marked `.num` too, or the header label sits
+  over the left edge of a column of right-aligned numbers, which reads as
+  misaligned even though the numbers themselves line up correctly row to
+  row. Don't reintroduce a raw hex inside a selector — add or reuse a
   custom property instead, or a themed screenshot silently stops updating
   with the other one.
 

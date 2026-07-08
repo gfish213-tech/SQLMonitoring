@@ -16,10 +16,10 @@ export function WaitsPanel({ waits }: { waits: CurrentWaitRow[] }) {
         <table>
           <thead>
             <tr>
-              <th>Session</th>
+              <th className="num">Session</th>
               <th>DB</th>
               <th>Wait Type</th>
-              <th>Waiting</th>
+              <th className="num">Waiting</th>
               <th>Resource</th>
             </tr>
           </thead>

@@ -54,7 +54,7 @@ export function ConsumersPanel({ consumers }: { consumers: ConsumerRow[] }) {
   function headerFor(key: SortKey, label: string) {
     const active = sort.key === key;
     return (
-      <th key={key} className="sortable-th" aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
+      <th key={key} className="sortable-th num" aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
         <button type="button" className="sort-button" onClick={() => handleSort(key)}>
           {label}
           <span className={`sort-arrow ${active ? "active" : ""}`}>{active ? (sort.dir === "asc" ? "▲" : "▼") : "↕"}</span>
@@ -89,13 +89,13 @@ export function ConsumersPanel({ consumers }: { consumers: ConsumerRow[] }) {
         <table>
           <thead>
             <tr>
-              <th>Session</th>
+              <th className="num">Session</th>
               <th>Login</th>
               <th>Host / App</th>
               <th>DB</th>
               {SORT_COLUMNS.map((c) => headerFor(c.key, c.label))}
               <th>Wait</th>
-              <th>Blocked By</th>
+              <th className="num">Blocked By</th>
               <th>Query</th>
             </tr>
           </thead>

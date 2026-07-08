@@ -15,9 +15,9 @@ export function VolumeSpacePanel({ volumeSpace }: { volumeSpace: VolumeSpaceRow[
               <tr>
                 <th>Volume</th>
                 <th>Label</th>
-                <th>Total</th>
-                <th>Free</th>
-                <th>Free %</th>
+                <th className="num">Total</th>
+                <th className="num">Free</th>
+                <th className="num">Free %</th>
               </tr>
             </thead>
             <tbody>

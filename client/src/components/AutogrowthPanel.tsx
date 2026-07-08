@@ -19,7 +19,7 @@ export function AutogrowthPanel({ autogrowth }: { autogrowth: AutogrowthEvent[] 
               <th>File</th>
               <th>Type</th>
               <th>When</th>
-              <th>Duration</th>
+              <th className="num">Duration</th>
             </tr>
           </thead>
           <tbody>

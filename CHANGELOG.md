@@ -93,6 +93,17 @@
   joins need one) — a "-" there is expected, not a bug.
 
 ### Fixed
+- **Table headers didn't line up with their numeric columns**: every
+  numeric column right-aligns its data (`.num`, so figures line up
+  vertically), but the header cell above it was left-aligned by default,
+  so a column like CPU or Elapsed had its numbers sitting under the right
+  edge of a header label anchored to the left — every numeric column in
+  every table (Consumers, Blocking, Waits, Agent Jobs, TempDB, Disk
+  Volume Space, Log Space/VLF Count, Autogrowth, Index Stats) had this
+  mismatch. Fixed by marking each numeric column's `<th>` with the same
+  `.num` class as its `<td>`s (plus a matching rule for Consumers'
+  clickable sort-button headers), so header and data now share the same
+  right edge.
 - **Current Waits was flooded with SQL Server's own background waits**:
   the panel's "excludes benign background waits" badge was only
   half-true — the exclusion list named a handful of wait types by hand,
