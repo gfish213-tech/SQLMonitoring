@@ -477,6 +477,12 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
   different severity (e.g. one file's IO latency crossed the critical
   threshold, another only the warning one) correctly stay as separate,
   ungrouped items rather than being merged under one severity-blind box.
+  Within a group, `detail` also collapses to one shared line *only* when
+  every member's `detail` is the literal same string (VLF count's is —
+  it's pure boilerplate with zero per-database content, unlike disk
+  latency's, which embeds the actual file path, or autogrowth's, which
+  embeds the actual duration/timestamp) — collapsing there too would
+  silently drop real per-finding information, not just repeat less text.
 - `summary.ts` — `buildSummaryText(data, connection)` renders the whole
   snapshot (diagnosis + every panel) as plain text for the **Copy for AI**
   button in `App.tsx`'s refresh bar (`navigator.clipboard.writeText`, with a

@@ -122,13 +122,29 @@ export function DiagnosisSummary({
                             View →
                           </button>
                         )}
-                        <ul className="diagnosis-group-items">
-                          {group.map((f, j) => (
-                            <li key={j}>
-                              {f.title} — {f.detail}
-                            </li>
-                          ))}
-                        </ul>
+                        {(() => {
+                          // Some finding kinds (VLF count is the clean example) have a `detail`
+                          // sentence that's pure boilerplate with no per-finding content at all -
+                          // every item in the group has the literal same string. Showing that once
+                          // instead of once per item removes real, verified-zero-information
+                          // repetition; kinds where detail actually varies per item (disk latency's
+                          // file path, autogrowth's duration/time) keep detail inline per item below,
+                          // since collapsing there would lose real information.
+                          const sameDetail = group.every((f) => f.detail === group[0].detail);
+                          return (
+                            <>
+                              {sameDetail && <div className="diagnosis-group-note">{group[0].detail}</div>}
+                              <ul className="diagnosis-group-items">
+                                {group.map((f, j) => (
+                                  <li key={j}>
+                                    {f.title}
+                                    {sameDetail ? "" : ` — ${f.detail}`}
+                                  </li>
+                                ))}
+                              </ul>
+                            </>
+                          );
+                        })()}
                       </>
                     )}
                     <div className="diagnosis-advice diagnosis-advice-inline">

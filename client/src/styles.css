@@ -823,3 +823,9 @@ tr.blocked-row {
 .diagnosis-group-items li {
   margin-bottom: 2px;
 }
+
+.diagnosis-group-note {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
