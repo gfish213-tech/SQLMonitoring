@@ -75,7 +75,7 @@ dev` and `cd client && npm run dev` in two terminals instead — see
 
 ## Refresh behavior
 
-**Manual by default, and two weights of refresh.** This tool is often used
+**Manual by default, and three weights of refresh.** This tool is often used
 to look at a server that's already under load, so it must not add its own
 recurring query traffic without being asked — and even when asked, it
 shouldn't necessarily run everything. **Quick Refresh** (used on page load,
@@ -85,7 +85,10 @@ Space. **Full Refresh** additionally runs the heavier checks — Consumers,
 TempDB, VLF Counts, IO Latency, Autogrowth, Deadlocks, Disk Volume Space,
 Indexes. Tabs/sections not covered by the last refresh show a dashed "not
 checked" placeholder and a dim gray tab dot, distinct from a red dot
-("checked, found something") or no dot ("checked, clean"). Check
+("checked, found something") or no dot ("checked, clean"). A **↻ Refresh
+&lt;Tab&gt;** button above every tab's content re-runs just that tab's
+query — lighter than either Quick or Full Refresh, for when you only want
+to update the one thing you're watching. Check
 **Auto-refresh every 20s** to opt into polling — quick only, never full. A
 refresh takes about a second by design: the rate/pressure numbers (Batch
 Requests/sec, buffer cache hit ratio, signal wait %) are measured over a
@@ -129,11 +132,14 @@ detected") so ruling a cause in or out is a glance, not a read:
 - **Backups & Long-Running Operations** — BACKUP/RESTORE/DBCC/index rebuilds in
   progress, with % complete and ETA.
 - **Running Agent Jobs** — currently-executing job steps with live CPU/IO.
-- **Top Resource Consumers (Right Now)** — active requests ranked by current
-  CPU, not historical totals; each row also shows logical vs. physical disk
-  reads, writes, TempDB usage, and memory grant (held or waiting), plus the
-  actual query text — one place to see who's driving CPU, memory, and disk
-  I/O right now, and what it's running.
+- **Top Resource Consumers (Right Now)** — active sessions, returned as the
+  union of the top consumers by CPU, disk IO, and memory grant (not just a
+  CPU-sorted list, so an IO- or memory-heavy session that isn't a top CPU
+  consumer still shows up); each row shows logical vs. physical disk reads,
+  writes, TempDB usage, memory grant (held or waiting), and the actual
+  query text — one place to see who's driving CPU, memory, and disk I/O
+  right now, and what it's running. Click any resource column to sort by
+  it; a "Hide 'sa' session" checkbox filters out that login.
 - **Current Waits** — what's actually being waited on right now.
 - **CPU & Memory Pressure** — signal wait % (CPU pressure), page life
   expectancy, buffer cache hit ratio, pending memory grants, and worker

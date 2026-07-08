@@ -122,7 +122,7 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   }
   lines.push("");
 
-  lines.push("## Top Resource Consumers (Right Now) (top 20 by CPU time)");
+  lines.push("## Top Resource Consumers (Right Now) (top sessions by CPU, disk IO, or memory)");
   if (data.consumers === undefined) {
     lines.push(NOT_CHECKED);
   } else if (data.consumers.length === 0) {

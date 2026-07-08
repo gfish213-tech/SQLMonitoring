@@ -92,7 +92,7 @@ should just run `npm run serve` from the root.
 
 ## 5. Using the dashboard
 
-There is **no automatic refresh by default**, and refreshing comes in two
+There is **no automatic refresh by default**, and refreshing comes in three
 weights — this tool often gets used against a server that's already
 struggling, so it must not add its own recurring query load, and even an
 explicit refresh shouldn't necessarily run everything. **Quick Refresh**
@@ -103,7 +103,12 @@ Consumers, TempDB, VLF Counts, IO Latency, Autogrowth, Deadlocks, Disk
 Volume Space, Indexes. Anything not covered by your last refresh shows a
 dashed "not checked — run Full Refresh" placeholder instead of an empty
 state, so you're never misled into thinking a section was checked and came
-back clean when it just wasn't looked at. Check **Auto-refresh every 20s**
+back clean when it just wasn't looked at. A **↻ Refresh &lt;Tab&gt;** button
+above the current tab's content is the third, lightest option — it
+re-runs only that one tab's query (useful if you're watching, say,
+Consumers while a query finishes and don't want to pay for a whole Quick
+or Full Refresh), and it can also populate a single full-only tab on its
+own without running the rest of a Full Refresh. Check **Auto-refresh every 20s**
 if you want to opt into polling while you watch something resolve — this
 always uses Quick Refresh, never Full. Each refresh takes about one
 second — that's deliberate: the rate numbers (Batch Requests/sec, buffer
@@ -155,16 +160,21 @@ and Plan Cache/Ad-hoc query stats — and the rest are one tab each:
 - **Backups & Long-Running Operations** — BACKUP/RESTORE/DBCC/index rebuild
   progress with ETA.
 - **Running Agent Jobs** — currently-executing jobs with live CPU/IO.
-- **Top Resource Consumers (Right Now)** — active requests by current CPU,
-  not historical totals. Each row shows logical reads (buffer-pool
-  touches) *and* physical reads (actual disk reads, so a session hammering
-  the disk shows up even if it isn't the top CPU consumer) alongside
-  writes, TempDB usage, and a Memory Grant column — either the amount a
-  session currently holds, or "waiting for N MB" in amber if it's queued
-  behind one (most sessions never need a grant at all; a "-" here is
-  normal). This is the one panel that answers "who's using the most CPU,
-  memory, or disk I/O right now, and what exactly is it running" in a
-  single table.
+- **Top Resource Consumers (Right Now)** — active sessions, returned as
+  whichever are the top consumers by CPU, disk IO (physical reads/writes),
+  *or* memory grant — not just a CPU-sorted list, so a session that's
+  hammering the disk or holding a huge memory grant but isn't CPU-heavy
+  still shows up. Click any of the resource column headers (CPU, Elapsed,
+  Logical/Physical Reads, Writes, TempDB, Memory Grant) to sort by it,
+  click again to reverse — that's instant, it's just re-ordering rows
+  already on the page. Each row also shows a Memory Grant column — either
+  the amount a session currently holds, or "waiting for N MB" in amber if
+  it's queued behind one (most sessions never need a grant at all; a "-"
+  here is normal) — and the actual query text. A "Hide 'sa' session"
+  checkbox (off by default) is there if a maintenance/monitoring login
+  clutters the list. This is the one panel that answers "who's using the
+  most CPU, memory, or disk I/O right now, and what exactly is it running"
+  in a single table.
 - **Current Waits** — what's actually being waited on right now.
 - **CPU & Memory Pressure** — signal wait % (CPU pressure indicator), page
   life expectancy, buffer cache hit ratio, pending memory grants, runnable

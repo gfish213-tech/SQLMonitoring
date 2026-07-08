@@ -1,4 +1,4 @@
-import type { ConnectionMeta, ServerListEntry, TriageData } from "./types";
+import type { ConnectionMeta, DashboardTab, ServerListEntry, TriageData } from "./types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -37,4 +37,6 @@ export const api = {
   status: () => request<{ connected: boolean; connection: ConnectionMeta | null }>("/connection/status"),
 
   triage: (mode: "quick" | "full") => request<TriageData>(`/triage?mode=${mode}`),
+
+  refreshPanel: (tab: DashboardTab) => request<Partial<TriageData>>(`/triage/panel/${tab}`),
 };

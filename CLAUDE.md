@@ -172,6 +172,22 @@ guard in `diagnosis.ts` (`data.field ?? []` or an `if (data.field)`), a
 skipping any one of these will crash or silently misreport on a
 quick-only snapshot.
 
+**Per-tab refresh**, one level below quick/full: `GET
+/api/triage/panel/:tab` (the "↻ Refresh <Tab>" button always shown above
+the active tab's content) re-runs only that tab's query — strictly less
+load than even Quick Refresh, since it's one query (or two, for the
+combined Overview and Log Space tabs) instead of seven-plus. `useTriage`'s
+`refreshPanel(tab)` merges the returned partial object into the existing
+`data` state rather than replacing it, so every other tab's data is
+untouched, and tracks a per-tab `panelUpdatedAt` timestamp shown next to
+the button separately from the global "Last updated" in the refresh bar.
+This also doubles as a way to populate a single full-only tab (e.g.
+Consumers) without paying for the rest of a Full Refresh. `PANEL_FETCHERS`
+in `dashboard.ts` is the server-side map from tab key to fetcher(s) — it
+must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
+`App.tsx`; a new tab needs an entry in all three or its refresh button
+404s.
+
 ## Architecture
 
 ### Server (`server/src`)
@@ -194,8 +210,10 @@ quick-only snapshot.
 - `routes/dashboard.ts` — a single combined `GET /api/triage` endpoint that
   runs every `sql/*.ts` query via `Promise.all` (in two batches — quick then
   conditionally full, see Refresh behavior above) and returns one JSON
-  object. Mounted at `/api`, and applies a `requireConnection` middleware
-  via `router.use()` with no path — this matches **every** request that
+  object, plus `GET /api/triage/panel/:tab` (see "Per-tab refresh" above)
+  which runs only the query/queries one tab owns via the `PANEL_FETCHERS`
+  map. Mounted at `/api`, and applies a `requireConnection` middleware via
+  `router.use()` with no path — this matches **every** request that
   reaches this router, unconditionally.
 - `sql/*.ts` — one file per diagnostic check (`overview`, `blocking`,
   `longOps`, `agentJobs`, `consumers`, `currentWaits`, `pressure`, `tempdb`,
@@ -245,9 +263,20 @@ quick-only snapshot.
     present means the session is queued waiting on a grant, not holding
     one; `memoryGrantPending` distinguishes the two states, and
     `memoryGrantMb` reports whichever figure (granted vs. requested) is
-    relevant so the client always has one number to show. Still sorted by
-    CPU time only (`ORDER BY r.cpu_time DESC`) — there's no separate
-    "sort by memory" or "sort by IO" view.
+    relevant so the client always has one number to show. A flat `TOP N
+    ORDER BY cpu_time` would miss a session that's IO- or memory-heavy but
+    not CPU-heavy — it would never even be fetched, so no client-side sort
+    could surface it. Instead the query ranks the same row set four ways
+    with `ROW_NUMBER()` (CPU, physical reads, writes, memory) and keeps the
+    union of each ranking's top rows (`rn_cpu <= 20 OR rn_reads <= 15 OR
+    rn_writes <= 15 OR rn_mem <= 10`), so whichever column
+    `ConsumersPanel.tsx` is sorted by client-side, the genuine top
+    consumers for that resource are actually in the payload. This can
+    return more than 20 rows now (up to the sum of the thresholds, though
+    real overlap between "CPU-heavy" and "IO-heavy" keeps it well under
+    that in practice) — `dm_exec_requests` only has rows for sessions with
+    something actively running, so this stays cheap despite no longer
+    being a flat `TOP 20`.
   - `tempdb.ts` — the used-space breakdown reads `tempdb.sys.dm_db_file_
     space_usage` (user/internal objects + version store), not `FILEPROPERTY`.
     `FILEPROPERTY(name, 'SpaceUsed')` evaluates against whatever database
@@ -344,7 +373,12 @@ quick-only snapshot.
   accidentally wire the 20s auto-refresh interval to anything but quick.
   `lastMode` tracks which one the current `data` came from, for the
   "(quick check)" label next to the timestamp and the quick-only note in
-  `DiagnosisSummary`.
+  `DiagnosisSummary`. `refreshPanel(tab)` is the third, smallest refresh —
+  see "Per-tab refresh" above — and merges its partial response into `data`
+  with `setData(prev => prev ? { ...prev, ...partial } : prev)` rather than
+  replacing it; `panelLoading`/`panelUpdatedAt` are tracked separately from
+  the global `loading`/`lastUpdated` so a per-tab refresh doesn't disable
+  the Quick/Full Refresh buttons or overwrite the main "Last updated" time.
 - `diagnosis.ts` — `diagnose(data: TriageData): Finding[]`, pure heuristic
   scoring with no server round-trip (all the data it needs is already in the
   one combined `TriageData` payload). Each panel's data is checked against
@@ -430,6 +464,15 @@ quick-only snapshot.
 - `components/ServerPicker.tsx` — the connect screen: a `<select>` populated
   from `GET /api/connection/servers`, with an environment badge, replacing
   what used to be a manual connection form.
+- `components/ConsumersPanel.tsx` — client-side sort (click a column header
+  to sort by it, click again to reverse; nulls always sort last regardless
+  of direction) over whatever `consumers` rows the server sent — this is
+  free re-ordering, not a new query, since `consumers.ts` already returns
+  the union of top-by-CPU/reads/writes/memory (see `sql/*.ts` above). Also
+  has a client-only "Hide 'sa' session" checkbox (`loginName.toLowerCase()
+  === "sa"`, case-insensitive) for filtering out a maintenance/monitoring
+  login that clutters the list; defaults unchecked (show everything) since
+  silently hiding a session by default risks hiding the actual cause.
 - `components/Section.tsx` — shared wrapper for panels with an empty state;
   most panel components use it. `OverviewBar`, `PressurePanel`, and
   `TempdbPanel` render their own stat grids directly instead (no

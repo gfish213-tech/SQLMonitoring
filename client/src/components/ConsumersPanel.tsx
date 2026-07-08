@@ -1,15 +1,82 @@
+import { useMemo, useState } from "react";
 import { Section } from "./Section";
 import { formatMs, truncate } from "../format";
 import type { ConsumerRow } from "../types";
 
+type SortKey = "cpuTimeMs" | "elapsedMs" | "logicalReads" | "physicalReads" | "writes" | "tempdbMb" | "memoryGrantMb";
+
+const SORT_COLUMNS: { key: SortKey; label: string }[] = [
+  { key: "cpuTimeMs", label: "CPU" },
+  { key: "elapsedMs", label: "Elapsed" },
+  { key: "logicalReads", label: "Logical Reads" },
+  { key: "physicalReads", label: "Physical Reads" },
+  { key: "writes", label: "Writes" },
+  { key: "tempdbMb", label: "TempDB" },
+  { key: "memoryGrantMb", label: "Memory Grant" },
+];
+
+// All 20 rows are already fetched in one shot, so re-sorting by a different resource is free -
+// no new query needed, just re-ordering what's already in the browser. Nulls (e.g. no memory
+// grant, no TempDB usage) always sort last regardless of direction, so "who's using the most X"
+// never buries real numbers under a page of dashes.
+function sortConsumers(consumers: ConsumerRow[], key: SortKey, dir: "asc" | "desc"): ConsumerRow[] {
+  const sign = dir === "asc" ? 1 : -1;
+  return [...consumers].sort((a, b) => {
+    const av = a[key];
+    const bv = b[key];
+    if (av === null && bv === null) return 0;
+    if (av === null) return 1;
+    if (bv === null) return -1;
+    return (av - bv) * sign;
+  });
+}
+
 export function ConsumersPanel({ consumers }: { consumers: ConsumerRow[] }) {
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "cpuTimeMs", dir: "desc" });
+  const [hideSa, setHideSa] = useState(false);
+
+  const filtered = useMemo(
+    () => (hideSa ? consumers.filter((c) => c.loginName.toLowerCase() !== "sa") : consumers),
+    [consumers, hideSa]
+  );
+  const sorted = useMemo(() => sortConsumers(filtered, sort.key, sort.dir), [filtered, sort]);
+  const hiddenCount = consumers.length - filtered.length;
+
+  function handleSort(key: SortKey) {
+    setSort((prev) => (prev.key === key ? { key, dir: prev.dir === "desc" ? "asc" : "desc" } : { key, dir: "desc" }));
+  }
+
+  function headerFor(key: SortKey, label: string) {
+    const active = sort.key === key;
+    return (
+      <th key={key} className="sortable-th" aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
+        <button type="button" className="sort-button" onClick={() => handleSort(key)}>
+          {label}
+          <span className={`sort-arrow ${active ? "active" : ""}`}>{active ? (sort.dir === "asc" ? "▲" : "▼") : "↕"}</span>
+        </button>
+      </th>
+    );
+  }
+
   return (
     <Section
       id="panel-consumers"
       title="Top Resource Consumers (Right Now)"
-      badge={<span className="panel-hint">top 20 by CPU time</span>}
-      isEmpty={consumers.length === 0}
-      emptyText="No active requests consuming significant resources right now."
+      badge={
+        <span className="panel-badge-row">
+          <span className="panel-hint">top sessions by CPU, disk IO, or memory — click a column to sort</span>
+          <label className="panel-filter-toggle">
+            <input type="checkbox" checked={hideSa} onChange={(e) => setHideSa(e.target.checked)} />
+            Hide "sa" session{hideSa && hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ""}
+          </label>
+        </span>
+      }
+      isEmpty={sorted.length === 0}
+      emptyText={
+        consumers.length > 0 && sorted.length === 0
+          ? "No active requests left after hiding \"sa\" sessions — uncheck the filter above to see them."
+          : "No active requests consuming significant resources right now."
+      }
     >
       <div className="table-wrap">
         <table>
@@ -19,20 +86,14 @@ export function ConsumersPanel({ consumers }: { consumers: ConsumerRow[] }) {
               <th>Login</th>
               <th>Host / App</th>
               <th>DB</th>
-              <th>CPU</th>
-              <th>Elapsed</th>
-              <th>Logical Reads</th>
-              <th>Physical Reads</th>
-              <th>Writes</th>
-              <th>TempDB</th>
-              <th>Memory Grant</th>
+              {SORT_COLUMNS.map((c) => headerFor(c.key, c.label))}
               <th>Wait</th>
               <th>Blocked By</th>
               <th>Query</th>
             </tr>
           </thead>
           <tbody>
-            {consumers.map((c) => (
+            {sorted.map((c) => (
               <tr key={c.sessionId} className={c.blockingSessionId ? "blocked-row" : ""}>
                 <td className="num">{c.sessionId}</td>
                 <td>{c.loginName}</td>

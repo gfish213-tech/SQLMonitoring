@@ -100,4 +100,49 @@ router.get("/triage", async (req, res) => {
   }
 });
 
+// Per-tab refresh: re-run just the query (or two) behind one tab instead of the whole quick/full
+// batch, for a DBA watching one specific panel (e.g. Consumers while a query finishes) who
+// doesn't want a Quick/Full Refresh's full cost just to update the one thing they're looking at
+// — strictly less load than either of those, not a new polling loop. Keyed by the same tab names
+// the client already uses (DashboardTab in types.ts); each handler returns only the field(s) that
+// tab owns, which the client merges into its existing snapshot rather than replacing it.
+const PANEL_FETCHERS: Record<string, () => Promise<Record<string, unknown>>> = {
+  overview: async () => {
+    const [overview, pressure, tempdb, volumeSpace] = await Promise.all([
+      labeled("overview", getOverview()),
+      labeled("pressure", getPressureStats()),
+      labeled("tempdb", getTempdbStats()),
+      labeled("volumeSpace", getVolumeSpace()),
+    ]);
+    return { overview, pressure, tempdb, volumeSpace };
+  },
+  blocking: async () => ({ blocking: await labeled("blocking", getBlockingChains()) }),
+  consumers: async () => ({ consumers: await labeled("consumers", getCurrentConsumers()) }),
+  longops: async () => ({ longOps: await labeled("longOps", getLongRunningOps()) }),
+  agentjobs: async () => ({ agentJobs: await labeled("agentJobs", getRunningAgentJobs()) }),
+  waits: async () => ({ waits: await labeled("waits", getCurrentWaits()) }),
+  logspace: async () => {
+    const [logSpace, vlfCounts] = await Promise.all([labeled("logSpace", getLogSpaceUsage()), labeled("vlfCounts", getVlfCounts())]);
+    return { logSpace, vlfCounts };
+  },
+  iolatency: async () => ({ ioLatency: await labeled("ioLatency", getIoLatency()) }),
+  autogrowth: async () => ({ autogrowth: await labeled("autogrowth", getRecentAutogrowthEvents()) }),
+  deadlocks: async () => ({ deadlocks: await labeled("deadlocks", getRecentDeadlocks()) }),
+  indexes: async () => ({ indexStats: await labeled("indexStats", getIndexStats()) }),
+};
+
+router.get("/triage/panel/:tab", async (req, res) => {
+  const fetcher = PANEL_FETCHERS[req.params.tab];
+  if (!fetcher) {
+    res.status(404).json({ error: `Unknown panel "${req.params.tab}"` });
+    return;
+  }
+
+  try {
+    res.json(await fetcher());
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 export default router;

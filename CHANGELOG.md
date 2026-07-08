@@ -3,6 +3,27 @@
 ## Unreleased
 
 ### Added
+- **Per-tab refresh**: a "↻ Refresh &lt;Tab&gt;" button now sits above every
+  tab's content and re-runs only that tab's query — one query (or two, for
+  Overview and Log Space), strictly less load than even Quick Refresh's
+  seven. Useful for watching one specific panel (e.g. Consumers while a
+  query finishes) without paying for a whole batch, and doubles as a way
+  to populate a single full-only tab without running a full Full Refresh.
+  Merges into the existing snapshot, so every other tab's data is left
+  untouched, and shows its own "panel refreshed HH:MM:SS" timestamp
+  separate from the main "Last updated" time.
+- **Sortable, filterable Top Resource Consumers**: click any resource
+  column header (CPU, Elapsed, Logical/Physical Reads, Writes, TempDB,
+  Memory Grant) to sort by it, click again to reverse — free re-ordering
+  of already-fetched rows, no new query. The underlying query itself also
+  changed: it used to be a flat "top 20 by CPU," which meant a session
+  that was IO- or memory-heavy but not CPU-heavy would never even be
+  fetched, so no amount of client-side sorting could surface it. It now
+  returns the union of the top sessions by CPU, physical reads, writes,
+  and memory grant, so whichever column you sort by, the genuine top
+  consumers for that resource are actually there. A "Hide 'sa' session"
+  checkbox (off by default) filters out that login client-side for anyone
+  whose maintenance/monitoring tools connect as `sa` and clutter the list.
 - **Physical disk reads and memory grants in Top Resource Consumers**: the
   Consumers panel already showed CPU, elapsed time, logical reads, and the
   live query text per session — now it also shows `physicalReads` (real

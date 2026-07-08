@@ -98,7 +98,20 @@ function buildTabs(data: TriageData): { key: DashboardTab; label: string; hasDat
 }
 
 function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; onDisconnect: () => void }) {
-  const { data, error, loading, lastUpdated, lastMode, refresh, fullRefresh, autoRefresh, setAutoRefresh } = useTriage();
+  const {
+    data,
+    error,
+    loading,
+    lastUpdated,
+    lastMode,
+    refresh,
+    fullRefresh,
+    autoRefresh,
+    setAutoRefresh,
+    refreshPanel,
+    panelLoading,
+    panelUpdatedAt,
+  } = useTriage();
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
 
@@ -174,6 +187,19 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
       {data && (
         <main className="dashboard">
           <DiagnosisSummary data={data} onJumpToPanel={setActiveTab} isQuickOnly={lastMode === "quick"} />
+          <div className="panel-refresh-row">
+            <span className="panel-refresh-label">
+              {active?.label}
+              {panelUpdatedAt[activeTab] && ` · panel refreshed ${panelUpdatedAt[activeTab]!.toLocaleTimeString()}`}
+            </span>
+            <button
+              onClick={() => refreshPanel(activeTab)}
+              disabled={panelLoading === activeTab}
+              title={`Re-run just this tab's query — lighter than Quick or Full Refresh, doesn't touch any other tab's data.`}
+            >
+              {panelLoading === activeTab ? "Refreshing..." : `↻ Refresh ${active?.label}`}
+            </button>
+          </div>
           {active?.node}
         </main>
       )}
