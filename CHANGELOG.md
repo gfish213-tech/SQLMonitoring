@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Fixed
+- **Full Refresh could fail entirely with "Query timeout expired"**: the
+  Index Stats check called `OBJECT_NAME(id, dbid)` — a genuinely slow
+  cross-database metadata lookup — in a `WHERE` clause against every raw
+  row of `sys.dm_db_index_usage_stats`, before any cheap numeric filtering
+  happened. On a server with many databases/objects this could exceed the
+  15s query timeout, and unlike `autogrowth.ts`/`deadlocks.ts` it wasn't
+  wrapped to fail soft, so the timeout took down the *entire* Full
+  Refresh — losing every other panel's data along with it, not just Index
+  Stats. Fixed both ways: the query now filters on plain numeric columns
+  first and resolves each table name exactly once (`CROSS APPLY`) only for
+  the much smaller set of rows that survive filtering, and the whole check
+  is now wrapped in `try`/`catch` → empty results, matching the same
+  fail-soft pattern already used for the trace-/extended-events-based
+  checks, so one slow panel can no longer sink the rest of a refresh.
+
 ### Added
 - **Manual light/dark theme toggle**: a small sun/moon button (top-right,
   present on the connect screen and the dashboard alike) switches themes

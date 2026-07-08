@@ -279,6 +279,16 @@ quick-only snapshot.
     Indexes" shows `index_id` instead of a resolved name as a documented
     trade-off, not an oversight. Both queries reset on restart or index
     rebuild, same "since restart" caveat as `ioLatency.ts`'s average.
+    `OBJECT_NAME(id, dbid)` against a non-current database is a genuinely
+    slow per-row metadata lookup — both queries filter on plain numeric
+    columns first (inside a derived table / `GROUP BY`+`HAVING`) and only
+    resolve the name once per surviving row via `CROSS APPLY`, instead of
+    calling it in the `WHERE` clause against every raw DMV row (which timed
+    out in production on a server with many databases/objects before this
+    was fixed). The whole function is also wrapped in `try`/`catch` →
+    empty results, same reasoning as `autogrowth.ts`/`deadlocks.ts` below —
+    a slow index scan on an unusually large server shouldn't take down the
+    rest of a Full Refresh.
   - `autogrowth.ts`, `deadlocks.ts` — read from the default trace / the
     `system_health` extended-events session respectively, both of which are
     on by default but can be disabled by policy; both catch and return an
