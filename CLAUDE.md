@@ -232,7 +232,25 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
   `longOps`, `agentJobs`, `consumers`, `currentWaits`, `pressure`, `tempdb`,
   `logSpace`, `ioLatency`, `autogrowth`, `deadlocks`, `volumeSpace`,
   `indexStats`), each exporting a typed async function that runs against
-  `getPool()`. Notable ones:
+  `getPool()`. `statementText.ts` isn't a check itself — it's a shared SQL
+  fragment (`CURRENT_STATEMENT_SELECT`) and formatter (`formatQueryText`)
+  used by `consumers.ts`, `blocking.ts`, and `longOps.ts`, all three of
+  which show "what query is this session running." `sys.dm_exec_sql_text`
+  returns the *entire* batch or stored procedure body for a `sql_handle` —
+  not just the statement actually executing — so naively selecting `qt.text`
+  meant a session running inside even a modest stored procedure reported
+  that procedure's whole (often hundreds-of-lines) source as its "query."
+  `CURRENT_STATEMENT_SELECT` resolves the procedure name via `OBJECT_NAME
+  (qt.objectid, qt.dbid)` when there is one, and `formatQueryText` prefers
+  showing `EXEC dbo.ProcName` over the body; for ad-hoc SQL (no procedure)
+  it falls back to `SUBSTRING`-ing out just the one statement at
+  `[statement_start_offset, statement_end_offset)` — the standard
+  "currently executing statement" idiom — instead of the whole
+  (possibly multi-statement) batch text. `sys.dm_exec_connections.
+  most_recent_sql_handle` (used for an idle blocker's last statement in
+  `blocking.ts`, since an idle session has no active request to have
+  offsets on) only gets the proc-name shortcut, not the offset slicing —
+  there's no "currently executing" request to slice against.
   - `blocking.ts` — computes "lead blockers" (blockers not themselves
     waiting on anyone) in TypeScript from two queries, including blockers
     that are idle with an open transaction (`sys.dm_exec_sessions.status =
@@ -427,16 +445,20 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
   alignment) to carry meaning, since none of that survives being pasted into
   a chat. Update this alongside `types.ts` when an API response shape
   changes, the same as the panel components. Since `consumers.ts` now
-  returns every active request uncapped (see above), and deadlock XML /
-  blocking-chain query text can be individually huge, this text caps what
-  it includes so a real production snapshot doesn't balloon into thousands
-  of lines of mostly-redundant AI context: query text is truncated to
-  `MAX_QUERY_CHARS` (200), Consumers to the first `MAX_CONSUMERS_SHOWN`
-  (25, already CPU-sorted from the server), blocked sessions per lead
-  blocker to `MAX_BLOCKED_SHOWN` (15), and deadlock graphs to
-  `MAX_DEADLOCKS_SHOWN` (3) — each cap adds a "... and N more, see the
-  X tab" line rather than silently dropping data, since the on-screen
-  tables themselves stay uncapped; this text is meant as AI-diagnostic
+  returns every active request uncapped (see above), and deadlock XML can
+  be individually huge, this text caps what it includes so a real
+  production snapshot doesn't balloon into thousands of lines of
+  mostly-redundant AI context: query text is truncated to `MAX_QUERY_CHARS`
+  (200 — mainly a safety net now that `statementText.ts` already keeps
+  query text down to one statement or a procedure name rather than a whole
+  batch/proc body; still needed for a single ad-hoc statement that's
+  itself huge, e.g. a giant multi-row `INSERT`), Consumers to the first
+  `MAX_CONSUMERS_SHOWN` (25, already CPU-sorted from the server), blocked
+  sessions per lead blocker to `MAX_BLOCKED_SHOWN` (15), and deadlock
+  graphs to `MAX_DEADLOCKS_SHOWN` (3) — each cap adds a "... and N more,
+  see the X tab" line rather than silently dropping data, since the
+  on-screen tables themselves stay uncapped; this text is meant as
+  AI-diagnostic
   context, not a full data dump.
 - **Tabbed layout**: `App.tsx`'s `Dashboard` renders exactly one tab's
   content at a time via `activeTab` state (`DashboardTab` in `types.ts`) —

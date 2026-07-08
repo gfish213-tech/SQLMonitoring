@@ -19,16 +19,15 @@
   switched to — its "View details →" jump buttons still work the same way
   from there, you just don't see the banner itself again once you've
   navigated to, say, Blocking or Consumers.
-- **Copy for AI capped to avoid dumping thousands of lines on a busy
-  server**: since Top Resource Consumers now returns every active request
-  uncapped, and deadlock XML / blocking-chain query text can each be
-  individually huge, a real production snapshot could paste 6,000+ lines
-  into a chat — mostly redundant, expensive context. Query text is now
-  truncated to 200 characters, Consumers to the top 25 (already CPU-sorted
-  from the server), blocked sessions per lead blocker to 15, and deadlock
-  graphs to the 3 most recent — each cap adds a "... and N more, see the
-  X tab" line rather than silently dropping data. The on-screen tables
-  themselves are unaffected; only the AI-facing text is trimmed.
+- **Copy for AI row/graph caps**, as a backstop alongside the query-text
+  fix below: since Top Resource Consumers now returns every active
+  request uncapped, and deadlock XML can be individually huge, a real
+  production snapshot could still get long even with query text fixed.
+  Consumers is capped to the top 25 (already CPU-sorted from the server),
+  blocked sessions per lead blocker to 15, and deadlock graphs to the 3
+  most recent — each cap adds a "... and N more, see the X tab" line
+  rather than silently dropping data. The on-screen tables themselves are
+  unaffected; only the AI-facing text is trimmed.
 - **`start.bat` checks prerequisites upfront**: Git, Node.js, and npm are
   verified on `PATH` before anything else runs, failing fast with a
   specific, named message and a download link if one is missing — a
@@ -83,6 +82,21 @@
   joins need one) — a "-" there is expected, not a bug.
 
 ### Fixed
+- **"Query text" was dumping entire stored procedure bodies**: the real
+  cause behind Copy for AI's 6,000-line problem, not just row counts.
+  `sys.dm_exec_sql_text(sql_handle)` returns the *entire* batch or stored
+  procedure body for a handle, not just the statement actually executing —
+  so a session running inside even a modest stored procedure reported
+  that procedure's whole (often hundreds-of-lines) source as its "query,"
+  in Consumers, Blocking, and Backups/Long-Running Operations alike. Fixed
+  at the source (`sql/statementText.ts`, shared by all three): when the
+  batch is running inside a procedure, show `EXEC dbo.ProcName` instead of
+  the body; for ad-hoc SQL, slice out just the one currently-executing
+  statement (`SUBSTRING` at `[statement_start_offset,
+  statement_end_offset)`, the standard idiom) instead of the whole
+  (possibly multi-statement) batch text. The character-count truncation
+  added alongside this is now mostly a backstop for a single huge ad-hoc
+  statement, not the primary defense.
 - **Full Refresh could fail entirely with "Query timeout expired"**: the
   Index Stats check called `OBJECT_NAME(id, dbid)` — a genuinely slow
   cross-database metadata lookup — in a `WHERE` clause against every raw

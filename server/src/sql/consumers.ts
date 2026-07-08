@@ -1,4 +1,5 @@
 import { getPool } from "../db";
+import { CURRENT_STATEMENT_SELECT, formatQueryText } from "./statementText";
 
 export interface ConsumerRow {
   sessionId: number;
@@ -52,7 +53,7 @@ export async function getCurrentConsumers(): Promise<ConsumerRow[]> {
       mg.granted_memory_kb,
       mg.requested_memory_kb,
       mg.grant_time,
-      qt.text AS query_text
+      ${CURRENT_STATEMENT_SELECT}
     FROM sys.dm_exec_requests r
     INNER JOIN sys.dm_exec_sessions s ON s.session_id = r.session_id
     OUTER APPLY sys.dm_exec_sql_text(r.sql_handle) qt
@@ -100,6 +101,6 @@ export async function getCurrentConsumers(): Promise<ConsumerRow[]> {
           ? Math.round((row.requested_memory_kb / 1024) * 100) / 100
           : null,
     memoryGrantPending: row.grant_time === null && row.requested_memory_kb != null,
-    queryText: row.query_text,
+    queryText: formatQueryText(row.proc_name, row.statement_text),
   }));
 }

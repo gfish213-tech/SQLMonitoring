@@ -1,4 +1,5 @@
 import { getPool } from "../db";
+import { CURRENT_STATEMENT_SELECT, formatQueryText } from "./statementText";
 
 export interface BlockedSession {
   sessionId: number;
@@ -33,7 +34,8 @@ interface WaiterRow {
   wait_resource: string | null;
   login_name: string | null;
   database_name: string | null;
-  query_text: string | null;
+  proc_name: string | null;
+  statement_text: string | null;
 }
 
 interface BlockerRow {
@@ -45,6 +47,7 @@ interface BlockerRow {
   open_transaction_count: number;
   last_request_end_time: string | null;
   database_name: string | null;
+  proc_name: string | null;
   last_statement_text: string | null;
 }
 
@@ -60,7 +63,7 @@ async function getWaiters() {
       r.wait_resource,
       s.login_name,
       DB_NAME(r.database_id) AS database_name,
-      qt.text AS query_text
+      ${CURRENT_STATEMENT_SELECT}
     FROM sys.dm_exec_requests r
     INNER JOIN sys.dm_exec_sessions s ON s.session_id = r.session_id
     OUTER APPLY sys.dm_exec_sql_text(r.sql_handle) qt
@@ -85,6 +88,7 @@ async function getBlockerSessions(blockerIds: number[]) {
       s.open_transaction_count,
       CONVERT(varchar(33), s.last_request_end_time, 126) AS last_request_end_time,
       DB_NAME(qt.dbid) AS database_name,
+      OBJECT_NAME(qt.objectid, qt.dbid) AS proc_name,
       qt.text AS last_statement_text
     FROM sys.dm_exec_sessions s
     LEFT JOIN sys.dm_exec_connections c ON c.session_id = s.session_id
@@ -146,7 +150,7 @@ export async function getBlockingChains(): Promise<LeadBlocker[]> {
       status: blockerInfo?.status ?? "unknown",
       isIdleWithOpenTransaction: blockerInfo?.status === "sleeping" && (blockerInfo?.open_transaction_count ?? 0) > 0,
       openTransactionCount: blockerInfo?.open_transaction_count ?? 0,
-      lastStatementText: blockerInfo?.last_statement_text ?? null,
+      lastStatementText: formatQueryText(blockerInfo?.proc_name ?? null, blockerInfo?.last_statement_text ?? null),
       lastRequestEndTime: blockerInfo?.last_request_end_time ?? null,
       databaseName: blockerInfo?.database_name ?? null,
       blockedSessions: chainWaiters.map((w) => ({
@@ -157,7 +161,7 @@ export async function getBlockingChains(): Promise<LeadBlocker[]> {
         waitResource: w.wait_resource,
         loginName: w.login_name,
         databaseName: w.database_name,
-        queryText: w.query_text,
+        queryText: formatQueryText(w.proc_name, w.statement_text),
       })),
     };
   });

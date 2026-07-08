@@ -1,4 +1,5 @@
 import { getPool } from "../db";
+import { CURRENT_STATEMENT_SELECT, formatQueryText } from "./statementText";
 
 export interface LongOpRow {
   sessionId: number;
@@ -29,7 +30,7 @@ export async function getLongRunningOps(): Promise<LongOpRow[]> {
       END AS estimated_completion_time,
       DATEDIFF(MILLISECOND, r.start_time, GETDATE()) AS elapsed_ms,
       s.login_name,
-      qt.text AS query_text
+      ${CURRENT_STATEMENT_SELECT}
     FROM sys.dm_exec_requests r
     INNER JOIN sys.dm_exec_sessions s ON s.session_id = r.session_id
     OUTER APPLY sys.dm_exec_sql_text(r.sql_handle) qt
@@ -47,6 +48,6 @@ export async function getLongRunningOps(): Promise<LongOpRow[]> {
     estimatedCompletionTime: row.estimated_completion_time,
     elapsedMs: row.elapsed_ms,
     loginName: row.login_name,
-    queryText: row.query_text,
+    queryText: formatQueryText(row.proc_name, row.statement_text),
   }));
 }
