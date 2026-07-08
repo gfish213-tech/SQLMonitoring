@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Section } from "./Section";
 import { formatMs, truncate } from "../format";
+import { describeWaitType } from "../waitTypes";
 import type { ConsumerRow } from "../types";
 
 type SortKey = "cpuTimeMs" | "elapsedMs" | "logicalReads" | "physicalReads" | "writes" | "tempdbMb" | "memoryGrantMb";
@@ -68,7 +69,9 @@ export function ConsumersPanel({ consumers }: { consumers: ConsumerRow[] }) {
       title="Top Resource Consumers (Right Now)"
       badge={
         <span className="panel-badge-row">
-          <span className="panel-hint">every currently active request — click a column to sort</span>
+          <span className="panel-hint">
+            every currently active request — click a column to sort, hover a wait type for what it means
+          </span>
           <label className="panel-filter-toggle">
             <input type="checkbox" checked={hideSa} onChange={(e) => setHideSa(e.target.checked)} />
             Hide "sa" session{hideSa && hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ""}
@@ -122,7 +125,9 @@ export function ConsumersPanel({ consumers }: { consumers: ConsumerRow[] }) {
                     "-"
                   )}
                 </td>
-                <td>{c.waitType ?? "-"}</td>
+                <td className="wait-type-cell" title={describeWaitType(c.waitType) ?? undefined}>
+                  {c.waitType ?? "-"}
+                </td>
                 <td className="num">{c.blockingSessionId ?? "-"}</td>
                 <td className="query-cell">
                   <code>{c.queryText ? truncate(c.queryText, 100) : "-"}</code>

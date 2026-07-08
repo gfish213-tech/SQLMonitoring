@@ -531,6 +531,23 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
   login that clutters the list; defaults **on** (`sa` is almost always
   noise, not the cause) but stays a toggle, not a hard filter, since an
   incident genuinely caused by something running as `sa` is possible.
+- `waitTypes.ts` — `describeWaitType(waitType)`, a client-side-only lookup
+  (no server round-trip; the raw wait type string is already in every
+  response) mapping a raw SQL Server wait type name to a plain-English
+  explanation, since a name like `PAGEIOLATCH_SH` or `LCK_M_X` means
+  nothing to anyone not already fluent in SQL Server internals. Exact
+  matches for the wait types that actually surface in this app's own
+  diagnosis thresholds and everyday incidents; a prefix table (`LCK_M_*`,
+  `PAGEIOLATCH_*`/`PAGELATCH_*`, `PREEMPTIVE_*`, `HADR_*`, etc.) covers
+  the rest of each wait "family" it doesn't have an exact entry for; a
+  generic fallback note for anything still unrecognized rather than
+  leaving it blank. Wired in as a native `title` tooltip (`.wait-type-cell`
+  class — dotted-underline `cursor: help`, same visual language as
+  `StatCard`'s `hint`) on every Wait Type column: `WaitsPanel.tsx`,
+  `ConsumersPanel.tsx`, and `BlockingPanel.tsx`'s blocked-sessions table.
+  Not exhaustive by design — there are hundreds of wait types — so add new
+  entries here as specific ones come up rather than trying to cover all of
+  them upfront.
 - `components/Section.tsx` — shared wrapper for panels with an empty state;
   most panel components use it. `OverviewBar`, `PressurePanel`, and
   `TempdbPanel` render their own stat grids directly instead (no

@@ -414,6 +414,12 @@ button.primary {
   border-bottom: 1px dotted var(--text-muted);
 }
 
+.wait-type-cell {
+  cursor: help;
+  border-bottom: 1px dotted var(--text-muted);
+  width: fit-content;
+}
+
 .panel-refresh-row {
   display: flex;
   align-items: center;

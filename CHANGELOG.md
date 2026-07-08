@@ -3,6 +3,17 @@
 ## 1.5.0 — 2026-07-08
 
 ### Added
+- **Wait type tooltips**: raw wait type names like `PAGEIOLATCH_SH` or
+  `LCK_M_X` now show a plain-English explanation on hover (dotted
+  underline, native tooltip) wherever they appear — Waits, Top Resource
+  Consumers, and Blocking. Covers the wait types that actually show up in
+  this app's own diagnosis thresholds and everyday incidents by exact
+  name (`CXPACKET`, `WRITELOG`, `THREADPOOL`, `RESOURCE_SEMAPHORE`,
+  `ASYNC_NETWORK_IO`, etc.), falls back to a family-level explanation by
+  prefix (`LCK_M_*` → lock waits, `PAGEIOLATCH_*`/`PAGELATCH_*` → disk vs.
+  in-memory page contention, `PREEMPTIVE_*`, `HADR_*`, etc.) for anything
+  more specific, and a generic "not one of the common ones" note for
+  anything still unrecognized rather than leaving it unexplained.
 - **Server picker sorted Development → Staging → Production, and remembers
   your last server**: the dropdown on the connect screen no longer follows
   `servers.json`'s raw order — it's grouped Development first, then

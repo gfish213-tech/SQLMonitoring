@@ -1,10 +1,17 @@
 import { Section } from "./Section";
 import { formatMs, truncate } from "../format";
+import { describeWaitType } from "../waitTypes";
 import type { LeadBlocker } from "../types";
 
 export function BlockingPanel({ blocking }: { blocking: LeadBlocker[] }) {
   return (
-    <Section id="panel-blocking" title="Blocking & Long Transactions" isEmpty={blocking.length === 0} emptyText="No blocking detected.">
+    <Section
+      id="panel-blocking"
+      title="Blocking & Long Transactions"
+      badge={<span className="panel-hint">hover a wait type for what it means</span>}
+      isEmpty={blocking.length === 0}
+      emptyText="No blocking detected."
+    >
       <div className="blocker-list">
         {blocking.map((b) => (
           <div className="blocker-card" key={b.sessionId}>
@@ -47,7 +54,9 @@ export function BlockingPanel({ blocking }: { blocking: LeadBlocker[] }) {
                       <td className="num">{w.blockedBy}</td>
                       <td>{w.loginName ?? "-"}</td>
                       <td>{w.databaseName ?? "-"}</td>
-                      <td>{w.waitType ?? "-"}</td>
+                      <td className="wait-type-cell" title={describeWaitType(w.waitType) ?? undefined}>
+                        {w.waitType ?? "-"}
+                      </td>
                       <td className="num">{formatMs(w.waitTimeMs)}</td>
                       <td title={w.waitResource ?? undefined}>{w.waitResource ?? "-"}</td>
                       <td className="query-cell">
