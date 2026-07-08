@@ -54,6 +54,8 @@
   fail-soft pattern already used for the trace-/extended-events-based
   checks, so one slow panel can no longer sink the rest of a refresh.
 
+## 1.4.0 — 2026-07-07
+
 ### Added
 - **Manual light/dark theme toggle**: a small sun/moon button (top-right,
   present on the connect screen and the dashboard alike) switches themes
@@ -80,6 +82,12 @@
   the default appearance; light now actually renders correctly for anyone
   whose OS reports a light color-scheme preference.
 
+## 1.3.0 — 2026-07-06
+
+A single day's worth of work turning the 1.2.0 triage rework into a more
+complete incident-response tool: two-weight refresh, actionable advice on
+every finding, several new diagnostic panels, and a tabbed layout.
+
 ### Added
 - **"What to do" advice on every diagnosis finding**: each detected cause
   now carries a concrete first-response action written for mid-incident use
@@ -104,20 +112,6 @@
   their tab dot is dim gray rather than red/none, so "not checked yet" is
   never confused with "checked, nothing found." The diagnosis banner and
   Copy for AI text both call this out explicitly on a quick-only snapshot.
-
-### Fixed
-- **TempDB "Used" showed `null MB`**: the query read tempdb's file names
-  from `tempdb.sys.database_files` but then called `FILEPROPERTY(name,
-  'SpaceUsed')`, which evaluates against whatever database the connection
-  is *currently* in (this app defaults to `master`), not the database
-  implied by the table it's reading from — no file in `master` matched
-  those names, so it silently returned `NULL` for every row. Replaced with
-  `tempdb.sys.dm_db_file_space_usage`, which is genuinely queryable via a
-  3-part name from any database, and which also gives a proper breakdown
-  into **User Objects**, **Internal Objects**, and **Version Store**
-  instead of one opaque "Used" number.
-
-### Added
 - **Current (1-second-delta) I/O latency, IOPS, and throughput** alongside
   the existing since-restart average in Disk / IO Latency: the average
   alone is diluted by however long the server's been up, so a file that
@@ -166,8 +160,63 @@
   attempt used `npm approve-scripts --allow-scripts-pending`, which just
   re-lists pending scripts instead of approving them — approval is
   per-package **and per-version** by name.)
+- **Explanatory tooltips and panel badges** so a number or an empty panel
+  isn't misread: a small "ⓘ" hint on stats whose meaning isn't obvious from
+  the value alone (e.g. that Signal Wait % / Buffer Cache Hit Ratio /
+  Batch Requests/sec are a 1-second sample; that TempDB Used includes the
+  version store; that Version Store always reads 0 before 2016 SP2), and a
+  persistent header badge on panels with a filtering rule that otherwise
+  only shows up in the empty-state text (e.g. "top 20 by CPU time", "last
+  24 hours", "excludes benign background waits", "only databases over 50%
+  log used"). The Copy for AI text carries the same caveats inline in each
+  section heading.
+- **Tabbed layout** replaces the single long scrolling page: only the
+  Diagnosis banner and the sticky Refresh bar/tab strip are always
+  visible; everything else — Overview (with Pressure & TempDB), Blocking,
+  Consumers, Backups, Agent Jobs, Waits, Log Space, IO Latency, Autogrowth,
+  Deadlocks — is one tab each, shown one at a time. Every tab with actual
+  data gets a small red dot so it's obvious at a glance which tabs are
+  worth checking without clicking through all of them. The diagnosis
+  banner's top finding (and each item in "N other potential factors") now
+  has a **View details →** button that jumps straight to the relevant tab.
+- **Diagnosis banner**: a summary at the top of the dashboard that scores
+  all 12 panels against fixed thresholds and states the single most likely
+  cause in plain language (e.g. "Most likely cause: Blocking — Session 82
+  is blocking 2 other sessions"), with any other factors that crossed a
+  threshold in a collapsed "N other potential factors" list, or a plain "no
+  obvious cause detected" state if nothing did. Answers "which of the usual
+  suspects is it" directly instead of requiring a manual scan of all 11
+  panels.
+- `start.bat` at the repo root: a double-click launcher for end users who
+  don't want to touch a terminal. Force-syncs the local checkout to the
+  branch all fixes are pushed to (fixing a "no tracking information for
+  the current branch" failure when the local clone was sitting on
+  `master`), auto-stashing and restoring any local tracked edits (like a
+  user's own additions to `server/config/servers.json`) around the
+  switch/pull, installs dependencies, runs `npm run serve` (build + start)
+  in its own window, polls `localhost:4000` until the server responds, then
+  opens it in the default browser automatically.
+- `start.bat` is now self-bootstrapping: if handed to someone as a
+  standalone file with no project next to it, it clones the repo into a
+  `SQLMonitoring` subfolder first, then continues as normal — so sharing
+  just this one file (plus the usual prerequisites: Git, Node.js, the C++
+  build toolchain, and the ODBC driver) is enough to set up a new machine.
+- **Copy for AI** button in the refresh bar: copies the entire snapshot
+  (diagnosis findings plus every panel's data, spelled out as plain text)
+  to the clipboard in one click, ready to paste into an AI chat for a
+  second opinion or help interpreting something unfamiliar.
 
 ### Fixed
+- **TempDB "Used" showed `null MB`**: the query read tempdb's file names
+  from `tempdb.sys.database_files` but then called `FILEPROPERTY(name,
+  'SpaceUsed')`, which evaluates against whatever database the connection
+  is *currently* in (this app defaults to `master`), not the database
+  implied by the table it's reading from — no file in `master` matched
+  those names, so it silently returned `NULL` for every row. Replaced with
+  `tempdb.sys.dm_db_file_space_usage`, which is genuinely queryable via a
+  3-part name from any database, and which also gives a proper breakdown
+  into **User Objects**, **Internal Objects**, and **Version Store**
+  instead of one opaque "Used" number.
 - **"Batch Requests/sec" and "Buffer Cache Hit Ratio" showed lifetime
   totals, not current values**: both come from cumulative-since-restart
   performance counters, so on a real server "Batch Requests/sec" would have
@@ -198,27 +247,6 @@
   AI text) is now labeled "averaged since SQL Server restart" — that DMV is
   cumulative, and a 1-second sample would be too noisy for quiet files, so
   the caveat is stated instead of leaving the number to read as live.
-
-### Added
-- **Explanatory tooltips and panel badges** so a number or an empty panel
-  isn't misread: a small "ⓘ" hint on stats whose meaning isn't obvious from
-  the value alone (e.g. that Signal Wait % / Buffer Cache Hit Ratio /
-  Batch Requests/sec are a 1-second sample; that TempDB Used includes the
-  version store; that Version Store always reads 0 before 2016 SP2), and a
-  persistent header badge on panels with a filtering rule that otherwise
-  only shows up in the empty-state text (e.g. "top 20 by CPU time", "last
-  24 hours", "excludes benign background waits", "only databases over 50%
-  log used"). The Copy for AI text carries the same caveats inline in each
-  section heading.
-- **Tabbed layout** replaces the single long scrolling page: only the
-  Diagnosis banner and the sticky Refresh bar/tab strip are always
-  visible; everything else — Overview (with Pressure & TempDB), Blocking,
-  Consumers, Backups, Agent Jobs, Waits, Log Space, IO Latency, Autogrowth,
-  Deadlocks — is one tab each, shown one at a time. Every tab with actual
-  data gets a small red dot so it's obvious at a glance which tabs are
-  worth checking without clicking through all of them. The diagnosis
-  banner's top finding (and each item in "N other potential factors") now
-  has a **View details →** button that jumps straight to the relevant tab.
 - `consumers.ts`'s per-session tempdb calculation had a paren mismatch that
   put the `* 8.0 / 1024` cast math inside `SUM(...)`'s own argument list,
   which made SQL Server parse it as a call to a nonexistent table function
@@ -235,30 +263,6 @@
   delayed expansion throughout so variables set inside a parenthesized
   block are read correctly.
 
-### Added
-- `start.bat` at the repo root: a double-click launcher for end users who
-  don't want to touch a terminal. Force-syncs the local checkout to the
-  branch all fixes are pushed to (fixing a "no tracking information for
-  the current branch" failure when the local clone was sitting on
-  `master`), auto-stashing and restoring any local tracked edits (like a
-  user's own additions to `server/config/servers.json`) around the
-  switch/pull, installs dependencies, runs `npm run serve` (build + start)
-  in its own window, polls `localhost:4000` until the server responds, then
-  opens it in the default browser automatically.
-- `start.bat` is now self-bootstrapping: if handed to someone as a
-  standalone file with no project next to it, it clones the repo into a
-  `SQLMonitoring` subfolder first, then continues as normal — so sharing
-  just this one file (plus the usual prerequisites: Git, Node.js, the C++
-  build toolchain, and the ODBC driver) is enough to set up a new machine.
-- **Diagnosis banner**: a summary at the top of the dashboard that scores
-  all 12 panels against fixed thresholds and states the single most likely
-  cause in plain language (e.g. "Most likely cause: Blocking — Session 82
-  is blocking 2 other sessions"), with any other factors that crossed a
-  threshold in a collapsed "N other potential factors" list, or a plain "no
-  obvious cause detected" state if nothing did. Answers "which of the usual
-  suspects is it" directly instead of requiring a manual scan of all 11
-  panels.
-
 ### Changed
 - **Dashboard re-layout** to cut down on scrolling and give panels with
   actual data more visual priority: vitals (Overview, Pressure, TempDB) stay
@@ -269,12 +273,6 @@
   panels with data float above the quiet "nothing to report" ones, instead
   of all 11 panels stacking full-width in a single fixed vertical order
   regardless of which ones actually have something to show.
-
-### Added
-- **Copy for AI** button in the refresh bar: copies the entire snapshot
-  (diagnosis findings plus every panel's data, spelled out as plain text)
-  to the clipboard in one click, ready to paste into an AI chat for a
-  second opinion or help interpreting something unfamiliar.
 
 ## 1.2.0 — 2026-07-06
 
