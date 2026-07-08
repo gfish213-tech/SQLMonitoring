@@ -458,13 +458,25 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
   `Finding` carries a required `advice` string — a concrete first-response
   action, written for mid-incident use (what to kill and what never to
   kill, log backup vs. shrink, which tab to check next) — rendered as a
-  "💡 What to do" box under the top finding and inline under each item in
-  the expandable list. A new finding in `diagnosis.ts` must include advice;
-  keep it action-first and warn about destructive options' consequences
-  (e.g. KILL rolls back) rather than just naming the metric again.
-  `summary.ts`'s Copy-for-AI text deliberately does *not* include `advice`
-  (see below) — it's an on-screen-only field for a human skimming the
-  dashboard.
+  "💡 What to do" box under the top finding. A new finding in `diagnosis.ts`
+  must include advice; keep it action-first and warn about destructive
+  options' consequences (e.g. KILL rolls back) rather than just naming the
+  metric again. `summary.ts`'s Copy-for-AI text deliberately does *not*
+  include `advice` (see below) — it's an on-screen-only field for a human
+  skimming the dashboard. The expandable "N other potential factors" list
+  groups *consecutive* findings that share the exact same `advice` string
+  (`groupByAdvice`) into one shared "💡 What to do" box instead of repeating
+  it once per finding — a real production snapshot can have a dozen+
+  findings of the same kind (every VLF-fragmented database, every hot IO
+  file, every autogrowth event) whose advice is a fixed template with no
+  per-finding variation, and repeating that whole paragraph under each one
+  was most of what made the list long to read. Only *consecutive* findings
+  merge (not a global group-by) because `diagnose()`'s stable sort keeps
+  same-severity findings from the same panel loop adjacent but never
+  reorders across severity — two findings with identical advice text but
+  different severity (e.g. one file's IO latency crossed the critical
+  threshold, another only the warning one) correctly stay as separate,
+  ungrouped items rather than being merged under one severity-blind box.
 - `summary.ts` — `buildSummaryText(data, connection)` renders the whole
   snapshot (diagnosis + every panel) as plain text for the **Copy for AI**
   button in `App.tsx`'s refresh bar (`navigator.clipboard.writeText`, with a

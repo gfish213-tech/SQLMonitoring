@@ -175,6 +175,18 @@
   paragraph about DBCC SHRINKFILE). The on-screen "What to do" advice
   boxes (`DiagnosisSummary.tsx`) are unaffected — this only trims the
   copy-to-clipboard text.
+- **On-screen diagnosis list groups repeated advice instead of repeating
+  it per finding**: the same redundancy as above, but on screen — the
+  "N other potential factors" list showed a full "💡 What to do" box
+  under *every* finding, so a dozen+ VLF-fragmented databases or hot IO
+  files meant a dozen+ near-identical advice boxes stacked in a row.
+  Consecutive findings that share the exact same advice text now group
+  under one shared box (e.g. "VLF count (3 items):" followed by each
+  database's specific line, then one "Suggested action" box) — each
+  finding's own specifics stay visible, only the repeated paragraph
+  collapses. Findings with different severity never merge even if their
+  advice text matches, since they're not adjacent after the severity
+  sort.
 
 ## 1.4.0 — 2026-07-07
 

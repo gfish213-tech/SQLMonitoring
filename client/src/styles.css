@@ -814,3 +814,12 @@ tr.blocked-row {
 .diagnosis-more li {
   margin-bottom: 4px;
 }
+
+.diagnosis-group-items {
+  margin: 4px 0 4px 0;
+  padding-left: 16px;
+}
+
+.diagnosis-group-items li {
+  margin-bottom: 2px;
+}

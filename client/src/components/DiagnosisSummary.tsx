@@ -1,5 +1,5 @@
 import type { DashboardTab, TriageData } from "../types";
-import { diagnose } from "../diagnosis";
+import { diagnose, type Finding } from "../diagnosis";
 
 const ICONS = { critical: "⛔", warning: "⚠", info: "ℹ" } as const;
 
@@ -22,6 +22,22 @@ const PANEL_TO_TAB: Record<string, DashboardTab> = {
   Autogrowth: "autogrowth",
   Deadlocks: "deadlocks",
 };
+
+// Many findings of the same kind (every VLF-fragmented database, every hot IO file, every
+// autogrowth event) carry the exact same "What to do" advice - findings of the same kind are
+// already adjacent (diagnose() appends them from one panel's loop, and the later stable sort by
+// severity preserves that relative order), so grouping consecutive identical-advice findings
+// keeps every finding's own specifics visible while showing the shared advice box once instead
+// of once per finding - the boxes are what dominated a long list, not the one-line summaries.
+function groupByAdvice(findings: Finding[]): Finding[][] {
+  const groups: Finding[][] = [];
+  for (const f of findings) {
+    const last = groups[groups.length - 1];
+    if (last && last[0].advice === f.advice) last.push(f);
+    else groups.push([f]);
+  }
+  return groups;
+}
 
 export function DiagnosisSummary({
   data,
@@ -83,18 +99,42 @@ export function DiagnosisSummary({
               {rest.length} other potential factor{rest.length === 1 ? "" : "s"}
             </summary>
             <ul>
-              {rest.map((f, i) => {
-                const tab = PANEL_TO_TAB[f.panel];
+              {groupByAdvice(rest).map((group, i) => {
+                const tab = PANEL_TO_TAB[group[0].panel];
                 return (
                   <li key={i}>
-                    <strong>{f.panel}:</strong> {f.title} — {f.detail}
-                    {tab && onJumpToPanel && (
-                      <button className="diagnosis-jump" onClick={() => onJumpToPanel(tab)}>
-                        View →
-                      </button>
+                    {group.length === 1 ? (
+                      <>
+                        <strong>{group[0].panel}:</strong> {group[0].title} — {group[0].detail}
+                        {tab && onJumpToPanel && (
+                          <button className="diagnosis-jump" onClick={() => onJumpToPanel(tab)}>
+                            View →
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <strong>
+                          {group[0].panel} ({group.length} items):
+                        </strong>
+                        {tab && onJumpToPanel && (
+                          <button className="diagnosis-jump" onClick={() => onJumpToPanel(tab)}>
+                            View →
+                          </button>
+                        )}
+                        <ul className="diagnosis-group-items">
+                          {group.map((f, j) => (
+                            <li key={j}>
+                              {f.title} — {f.detail}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
                     )}
                     <div className="diagnosis-advice diagnosis-advice-inline">
-                      <span className="diagnosis-advice-label">💡</span> {f.advice}
+                      <span className="diagnosis-advice-label">💡</span>{" "}
+                      {group.length > 1 ? `Same for all ${group.length} items above: ` : ""}
+                      {group[0].advice}
                     </div>
                   </li>
                 );
