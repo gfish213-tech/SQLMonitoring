@@ -85,11 +85,14 @@ export interface ConsumerRow {
   command: string | null;
   cpuTimeMs: number;
   logicalReads: number;
+  physicalReads: number;
   writes: number;
   elapsedMs: number;
   waitType: string | null;
   blockingSessionId: number | null;
   tempdbMb: number | null;
+  memoryGrantMb: number | null;
+  memoryGrantPending: boolean;
   queryText: string | null;
 }
 

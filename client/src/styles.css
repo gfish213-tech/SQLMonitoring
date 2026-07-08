@@ -558,6 +558,12 @@ tr.blocked-row {
   font-weight: 600;
 }
 
+.mem-grant-pending {
+  color: var(--warning);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .blocker-count {
   margin-left: auto;
   color: var(--danger);

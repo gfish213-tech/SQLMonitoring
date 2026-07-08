@@ -21,9 +21,11 @@ export function ConsumersPanel({ consumers }: { consumers: ConsumerRow[] }) {
               <th>DB</th>
               <th>CPU</th>
               <th>Elapsed</th>
-              <th>Reads</th>
+              <th>Logical Reads</th>
+              <th>Physical Reads</th>
               <th>Writes</th>
               <th>TempDB</th>
+              <th>Memory Grant</th>
               <th>Wait</th>
               <th>Blocked By</th>
               <th>Query</th>
@@ -41,8 +43,20 @@ export function ConsumersPanel({ consumers }: { consumers: ConsumerRow[] }) {
                 <td className="num">{formatMs(c.cpuTimeMs)}</td>
                 <td className="num">{formatMs(c.elapsedMs)}</td>
                 <td className="num">{c.logicalReads.toLocaleString()}</td>
+                <td className="num">{c.physicalReads.toLocaleString()}</td>
                 <td className="num">{c.writes.toLocaleString()}</td>
                 <td className="num">{c.tempdbMb !== null && c.tempdbMb > 0 ? `${c.tempdbMb} MB` : "-"}</td>
+                <td className="num">
+                  {c.memoryGrantMb !== null ? (
+                    c.memoryGrantPending ? (
+                      <span className="mem-grant-pending">waiting for {c.memoryGrantMb} MB</span>
+                    ) : (
+                      `${c.memoryGrantMb} MB`
+                    )
+                  ) : (
+                    "-"
+                  )}
+                </td>
                 <td>{c.waitType ?? "-"}</td>
                 <td className="num">{c.blockingSessionId ?? "-"}</td>
                 <td className="query-cell">

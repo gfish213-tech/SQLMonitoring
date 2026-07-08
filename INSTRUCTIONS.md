@@ -156,8 +156,15 @@ and Plan Cache/Ad-hoc query stats — and the rest are one tab each:
   progress with ETA.
 - **Running Agent Jobs** — currently-executing jobs with live CPU/IO.
 - **Top Resource Consumers (Right Now)** — active requests by current CPU,
-  not historical totals (includes each session's logical reads/writes, so
-  a heavy scan shows up here even if it isn't the top CPU consumer).
+  not historical totals. Each row shows logical reads (buffer-pool
+  touches) *and* physical reads (actual disk reads, so a session hammering
+  the disk shows up even if it isn't the top CPU consumer) alongside
+  writes, TempDB usage, and a Memory Grant column — either the amount a
+  session currently holds, or "waiting for N MB" in amber if it's queued
+  behind one (most sessions never need a grant at all; a "-" here is
+  normal). This is the one panel that answers "who's using the most CPU,
+  memory, or disk I/O right now, and what exactly is it running" in a
+  single table.
 - **Current Waits** — what's actually being waited on right now.
 - **CPU & Memory Pressure** — signal wait % (CPU pressure indicator), page
   life expectancy, buffer cache hit ratio, pending memory grants, runnable

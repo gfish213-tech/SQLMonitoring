@@ -129,12 +129,16 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
     lines.push("No active requests other than this connection.");
   } else {
     for (const c of data.consumers) {
+      const memGrant =
+        c.memoryGrantMb !== null ? `, memory grant=${c.memoryGrantMb} MB${c.memoryGrantPending ? " (waiting)" : ""}` : "";
       lines.push(
         `- Session ${c.sessionId} (${c.loginName}) on ${c.databaseName ?? "-"} — ${c.command ?? "-"}, CPU ${formatMs(
           c.cpuTimeMs
-        )}, elapsed ${formatMs(c.elapsedMs)}, reads=${c.logicalReads}, writes=${c.writes}, wait=${c.waitType ?? "-"}${
-          c.blockingSessionId ? `, blocked by ${c.blockingSessionId}` : ""
-        }${c.queryText ? ` — ${c.queryText}` : ""}`
+        )}, elapsed ${formatMs(c.elapsedMs)}, logical reads=${c.logicalReads}, physical reads=${c.physicalReads}, writes=${
+          c.writes
+        }${memGrant}, wait=${c.waitType ?? "-"}${c.blockingSessionId ? `, blocked by ${c.blockingSessionId}` : ""}${
+          c.queryText ? ` — ${c.queryText}` : ""
+        }`
       );
     }
   }

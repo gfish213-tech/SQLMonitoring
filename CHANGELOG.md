@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Added
+- **Physical disk reads and memory grants in Top Resource Consumers**: the
+  Consumers panel already showed CPU, elapsed time, logical reads, and the
+  live query text per session — now it also shows `physicalReads` (real
+  disk reads, from `sys.dm_exec_requests.reads`) alongside the existing
+  logical reads (buffer-pool touches, which can be cache hits and don't
+  necessarily mean disk activity), and a Memory Grant column from `sys.
+  dm_exec_query_memory_grants` showing either the amount a session is
+  currently holding or, if it's queued waiting on one, "waiting for N MB"
+  in a distinct warning color. Together with the existing CPU/query-text
+  columns this makes Consumers a single place to see who's driving CPU,
+  memory, and disk I/O right now, with the exact command each is running.
+  Most sessions don't hold a memory grant at all (only sorts/hashes/large
+  joins need one) — a "-" there is expected, not a bug.
+
 ### Fixed
 - **Full Refresh could fail entirely with "Query timeout expired"**: the
   Index Stats check called `OBJECT_NAME(id, dbid)` — a genuinely slow

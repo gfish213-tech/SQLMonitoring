@@ -130,7 +130,10 @@ detected") so ruling a cause in or out is a glance, not a read:
   progress, with % complete and ETA.
 - **Running Agent Jobs** — currently-executing job steps with live CPU/IO.
 - **Top Resource Consumers (Right Now)** — active requests ranked by current
-  CPU, not historical totals.
+  CPU, not historical totals; each row also shows logical vs. physical disk
+  reads, writes, TempDB usage, and memory grant (held or waiting), plus the
+  actual query text — one place to see who's driving CPU, memory, and disk
+  I/O right now, and what it's running.
 - **Current Waits** — what's actually being waited on right now.
 - **CPU & Memory Pressure** — signal wait % (CPU pressure), page life
   expectancy, buffer cache hit ratio, pending memory grants, and worker

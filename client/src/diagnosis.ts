@@ -106,7 +106,7 @@ export function diagnose(data: TriageData): Finding[] {
       title: `${data.pressure.pendingMemoryGrants} quer${data.pressure.pendingMemoryGrants === 1 ? "y is" : "ies are"} waiting on a memory grant`,
       detail: "Queries can't get the memory they need to start running — usually memory pressure or a runaway query elsewhere.",
       advice:
-        "Usually one query holding an oversized memory grant starves the rest — look in the Consumers tab (needs a Full Refresh to populate) for a long-running session doing big sorts/hashes (huge reads, SELECT with ORDER BY / joins over large tables). Killing or finishing that one typically releases the queue. Recurring cases are a bad plan or missing index on the greedy query.",
+        "Open the Consumers tab (needs a Full Refresh to populate) and check the Memory Grant column — it flags exactly which session(s) are waiting and how much they're asking for. Usually one query holding an oversized grant starves the rest; killing or finishing that one typically releases the queue. Recurring cases are a bad plan or missing index on the greedy query.",
     });
   }
 

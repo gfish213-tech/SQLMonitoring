@@ -233,6 +233,21 @@ quick-only snapshot.
     style 2) and matching it against `sys.dm_exec_sessions.program_name`.
     Don't try to replicate SQL Server's GUID-to-hex byte ordering in
     JavaScript — it's a well-known source of subtle bugs.
+  - `consumers.ts` — the "who's using the most CPU/memory/disk IO right
+    now, with the actual query" panel. Reports both `logical_reads`
+    (buffer-pool page touches, includes cache hits) and `sys.dm_exec_
+    requests.reads` as `physicalReads` (real disk reads) side by side —
+    logical alone can't distinguish "hot in cache" from "hammering the
+    disk." Memory grant is an `OUTER APPLY` on `sys.dm_exec_query_memory_
+    grants` keyed by `session_id`: most sessions never need one (no sort/
+    hash/large join), so `memoryGrantMb` is `null` for most rows — that's
+    normal, not a bug. `grant_time IS NULL` with a `requested_memory_kb`
+    present means the session is queued waiting on a grant, not holding
+    one; `memoryGrantPending` distinguishes the two states, and
+    `memoryGrantMb` reports whichever figure (granted vs. requested) is
+    relevant so the client always has one number to show. Still sorted by
+    CPU time only (`ORDER BY r.cpu_time DESC`) — there's no separate
+    "sort by memory" or "sort by IO" view.
   - `tempdb.ts` — the used-space breakdown reads `tempdb.sys.dm_db_file_
     space_usage` (user/internal objects + version store), not `FILEPROPERTY`.
     `FILEPROPERTY(name, 'SpaceUsed')` evaluates against whatever database
