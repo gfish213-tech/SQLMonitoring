@@ -39,6 +39,36 @@ function groupByAdvice(findings: Finding[]): Finding[][] {
   return groups;
 }
 
+// diagnosis.ts's per-finding `detail` strings are consistently built as `<unique part> — <fixed
+// explanatory sentence>` (disk latency: file path — "normal is under ~15ms..."; autogrowth:
+// "Took Xms at HH:MM:SS" — "can cause a brief freeze..."). Within a group, if every member's
+// text after the first " — " is the literal same string, that fixed sentence is exactly as
+// redundant as VLF count's fully-boilerplate detail (see groupDetail below) - it just also has a
+// genuinely unique prefix worth keeping per item. Returns null if any member lacks " — " or the
+// suffixes don't match, so the caller falls back to showing full detail per item rather than
+// guessing wrong.
+function splitCommonSuffix(group: Finding[]): string | null {
+  const suffixes = group.map((f) => {
+    const idx = f.detail.indexOf(" — ");
+    return idx === -1 ? null : f.detail.slice(idx + 3);
+  });
+  if (suffixes.some((s) => s === null)) return null;
+  return suffixes.every((s) => s === suffixes[0]) ? suffixes[0] : null;
+}
+
+// Decides how much of a group's `detail` text is safe to show once instead of once per item -
+// see the two helpers above for what "safe" means (no real per-finding information lost).
+function groupDetail(group: Finding[]): { shared: string | null; perItem: (f: Finding) => string } {
+  if (group.every((f) => f.detail === group[0].detail)) {
+    return { shared: group[0].detail, perItem: () => "" };
+  }
+  const suffix = splitCommonSuffix(group);
+  if (suffix !== null) {
+    return { shared: suffix, perItem: (f) => f.detail.slice(0, f.detail.indexOf(" — ")) };
+  }
+  return { shared: null, perItem: (f) => f.detail };
+}
+
 export function DiagnosisSummary({
   data,
   onJumpToPanel,
@@ -123,24 +153,20 @@ export function DiagnosisSummary({
                           </button>
                         )}
                         {(() => {
-                          // Some finding kinds (VLF count is the clean example) have a `detail`
-                          // sentence that's pure boilerplate with no per-finding content at all -
-                          // every item in the group has the literal same string. Showing that once
-                          // instead of once per item removes real, verified-zero-information
-                          // repetition; kinds where detail actually varies per item (disk latency's
-                          // file path, autogrowth's duration/time) keep detail inline per item below,
-                          // since collapsing there would lose real information.
-                          const sameDetail = group.every((f) => f.detail === group[0].detail);
+                          const { shared, perItem } = groupDetail(group);
                           return (
                             <>
-                              {sameDetail && <div className="diagnosis-group-note">{group[0].detail}</div>}
+                              {shared !== null && <div className="diagnosis-group-note">{shared}</div>}
                               <ul className="diagnosis-group-items">
-                                {group.map((f, j) => (
-                                  <li key={j}>
-                                    {f.title}
-                                    {sameDetail ? "" : ` — ${f.detail}`}
-                                  </li>
-                                ))}
+                                {group.map((f, j) => {
+                                  const rest = perItem(f);
+                                  return (
+                                    <li key={j}>
+                                      {f.title}
+                                      {rest ? ` — ${rest}` : ""}
+                                    </li>
+                                  );
+                                })}
                               </ul>
                             </>
                           );

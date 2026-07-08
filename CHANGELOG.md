@@ -186,14 +186,21 @@
   finding's own specifics stay visible, only the repeated paragraph
   collapses. Findings with different severity never merge even if their
   advice text matches, since they're not adjacent after the severity
-  sort. Within a group, the `detail` sentence collapses to one shared
-  line too, but only when it's the literal same string for every member
-  — VLF count's detail is pure boilerplate with no per-database content,
-  so a 12-database group used to repeat that same sentence 12 times for
-  zero new information each time; disk latency's and autogrowth's detail
-  embed real per-finding data (file path, duration/timestamp) and
-  correctly keep showing it per item, since collapsing there would drop
-  real information, not just repeat less text.
+  sort. Within a group, the `detail` sentence collapses too, two ways:
+  when it's the literal same string for every member (VLF count's is
+  pure boilerplate with no per-database content — a 12-database group
+  used to repeat that same sentence 12 times for zero new information
+  each time), the whole sentence shows once and each item shows just its
+  title; otherwise, since every `detail` is built as `<unique part> —
+  <fixed sentence>` (disk latency: file path — "normal is under
+  ~15ms..."; autogrowth: "Took Xms at HH:MM:SS" — "can cause a brief
+  freeze..."), if the part *after* that first "—" is identical across
+  the whole group, that fixed sentence shows once and each item keeps
+  just its own unique file path or duration/timestamp — real
+  per-finding data never collapses, only the fixed sentence attached to
+  it. Falls back to showing `detail` in full per item when neither
+  condition holds (e.g. a mix of flagged/unflagged disk-latency findings
+  in one group, whose trailing "Worse right now..." clause differs).
 
 ## 1.4.0 — 2026-07-07
 

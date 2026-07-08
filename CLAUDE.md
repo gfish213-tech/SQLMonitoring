@@ -477,12 +477,21 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
   different severity (e.g. one file's IO latency crossed the critical
   threshold, another only the warning one) correctly stay as separate,
   ungrouped items rather than being merged under one severity-blind box.
-  Within a group, `detail` also collapses to one shared line *only* when
+  Within a group, `detail` also collapses (`groupDetail`), two ways: if
   every member's `detail` is the literal same string (VLF count's is —
-  it's pure boilerplate with zero per-database content, unlike disk
-  latency's, which embeds the actual file path, or autogrowth's, which
-  embeds the actual duration/timestamp) — collapsing there too would
-  silently drop real per-finding information, not just repeat less text.
+  it's pure boilerplate with zero per-database content), the whole thing
+  shows once and each item shows just its `title`. Otherwise, since every
+  `detail` in `diagnosis.ts` is built as `<unique part> — <fixed
+  sentence>` (disk latency: file path — "normal is under ~15ms...";
+  autogrowth: "Took Xms at HH:MM:SS" — "can cause a brief freeze..."),
+  `splitCommonSuffix` checks whether the part *after* the first `" — "`
+  is identical across the whole group; if so, that fixed sentence shows
+  once and each item keeps just its own unique prefix (file path, or
+  duration+time) — real per-finding data never collapses, only the
+  fixed sentence attached to it. If neither condition holds (e.g. a mix
+  of flagged/unflagged disk-latency findings in one group, whose trailing
+  "Worse right now..." clause differs), `detail` falls back to showing
+  in full per item rather than guessing wrong.
 - `summary.ts` — `buildSummaryText(data, connection)` renders the whole
   snapshot (diagnosis + every panel) as plain text for the **Copy for AI**
   button in `App.tsx`'s refresh bar (`navigator.clipboard.writeText`, with a
