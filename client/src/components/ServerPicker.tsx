@@ -26,6 +26,8 @@ function sortServers(list: ServerListEntry[]): ServerListEntry[] {
   return [...list].sort((a, b) => environmentRank(a.environment) - environmentRank(b.environment) || a.label.localeCompare(b.label));
 }
 
+const LAST_SERVER_KEY = "sql-monitor-last-server";
+
 export function ServerPicker({ onConnected }: { onConnected: (meta: ConnectionMeta) => void }) {
   const [servers, setServers] = useState<ServerListEntry[] | null>(null);
   const [selected, setSelected] = useState("");
@@ -39,7 +41,12 @@ export function ServerPicker({ onConnected }: { onConnected: (meta: ConnectionMe
       .then((list) => {
         const sorted = sortServers(list);
         setServers(sorted);
-        if (sorted.length > 0) setSelected(sorted[0].server);
+        // Prefer the server actually connected to last time (if it's still in the list) over the
+        // Dev-first default - a DBA who always monitors the same server shouldn't have to reselect
+        // it every time the app loads.
+        const lastServer = window.localStorage.getItem(LAST_SERVER_KEY);
+        const initial = lastServer && sorted.some((s) => s.server === lastServer) ? lastServer : sorted[0]?.server;
+        if (initial) setSelected(initial);
       })
       .catch((err) => setLoadError((err as Error).message));
   }, []);
@@ -62,6 +69,7 @@ export function ServerPicker({ onConnected }: { onConnected: (meta: ConnectionMe
     setMessage(null);
     try {
       const result = await api.connect(selected);
+      window.localStorage.setItem(LAST_SERVER_KEY, selected);
       onConnected(result.connection);
     } catch (err) {
       setMessage({ type: "error", text: (err as Error).message });

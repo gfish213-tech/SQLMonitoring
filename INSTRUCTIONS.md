@@ -36,7 +36,9 @@ Edit `server/config/servers.json` — a plain JSON array, one entry per server:
   The dropdown itself is always sorted Development first, then Staging,
   then Production last (alphabetically by label within each group) no
   matter what order they're listed in this file, and Development is
-  pre-selected by default.
+  pre-selected by default — unless you've connected to a server before,
+  in which case that one is remembered (in the browser) and pre-selected
+  instead.
 - `server` is the hostname the app actually connects to.
 - Optional per-entry fields if a particular server needs something
   non-default: `database` (default `master`), `port`, `instanceName` (for a
@@ -130,8 +132,9 @@ anything not yet checked), spelled out as plain text — to your clipboard,
 ready to paste into an AI chat if you want a second opinion or help
 interpreting something unfamiliar.
 
-Right below the refresh bar, a **diagnosis banner** does the first pass for
-you: it scores every panel's data against fixed thresholds and states the
+At the top of the **Overview** tab (not repeated on every tab — switch
+back to Overview to see it again), a **diagnosis banner** does the first
+pass for you: it scores every panel's data against fixed thresholds and states the
 single most likely cause in plain language (e.g. "Most likely cause: Blocking
 — Session 82 is blocking 2 other sessions"), with a **View details →** button
 that jumps straight to that panel's tab, and a "N other potential factors"

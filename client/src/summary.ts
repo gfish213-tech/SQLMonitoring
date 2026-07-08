@@ -1,12 +1,20 @@
 import type { ConnectionMeta, TriageData } from "./types";
 import { diagnose } from "./diagnosis";
-import { formatMs } from "./format";
+import { formatMs, truncate } from "./format";
 
 function field(label: string, value: string | number | null | undefined): string {
   return `${label}: ${value ?? "-"}`;
 }
 
 const NOT_CHECKED = "Not checked in this quick refresh - run Full Refresh for this section.";
+
+// Query text and long lists (deadlock XML especially) can otherwise balloon this into thousands
+// of lines once Consumers has no server-side row cap - the point of this text is diagnostic
+// context for an AI, not a full data dump (the UI tables already show everything, uncapped).
+const MAX_QUERY_CHARS = 200;
+const MAX_CONSUMERS_SHOWN = 25;
+const MAX_BLOCKED_SHOWN = 15;
+const MAX_DEADLOCKS_SHOWN = 3;
 
 // Plain-text rendering of the whole snapshot, meant to be pasted into an AI chat for further
 // analysis - so every panel is spelled out in full sentences rather than relying on the visual
@@ -82,13 +90,17 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
           b.isIdleWithOpenTransaction ? "idle with an open transaction" : `status=${b.status}`
         }, blocking ${b.blockedSessions.length} session(s), DB=${b.databaseName ?? "-"}`
       );
-      if (b.lastStatementText) lines.push(`  Last statement: ${b.lastStatementText}`);
-      for (const w of b.blockedSessions) {
+      if (b.lastStatementText) lines.push(`  Last statement: ${truncate(b.lastStatementText, MAX_QUERY_CHARS)}`);
+      const waiters = b.blockedSessions.slice(0, MAX_BLOCKED_SHOWN);
+      for (const w of waiters) {
         lines.push(
           `  - Session ${w.sessionId} (${w.loginName ?? "-"}) waiting on session ${w.blockedBy}, on ${w.databaseName ?? "-"} — ${
             w.waitType ?? "-"
-          } for ${formatMs(w.waitTimeMs)} — query: ${w.queryText ?? "-"}`
+          } for ${formatMs(w.waitTimeMs)} — query: ${w.queryText ? truncate(w.queryText, MAX_QUERY_CHARS) : "-"}`
         );
+      }
+      if (b.blockedSessions.length > waiters.length) {
+        lines.push(`  ... and ${b.blockedSessions.length - waiters.length} more blocked session(s) not shown - see the Blocking tab.`);
       }
     }
   }
@@ -102,7 +114,7 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
       lines.push(
         `- ${op.command} on ${op.databaseName ?? "-"}${op.percentComplete != null ? ` (${op.percentComplete.toFixed(1)}% complete)` : ""}, elapsed ${formatMs(
           op.elapsedMs
-        )}, started by ${op.loginName ?? "-"}${op.queryText ? ` — ${op.queryText}` : ""}`
+        )}, started by ${op.loginName ?? "-"}${op.queryText ? ` — ${truncate(op.queryText, MAX_QUERY_CHARS)}` : ""}`
       );
     }
   }
@@ -128,7 +140,8 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   } else if (data.consumers.length === 0) {
     lines.push("No active requests other than this connection.");
   } else {
-    for (const c of data.consumers) {
+    const shown = data.consumers.slice(0, MAX_CONSUMERS_SHOWN);
+    for (const c of shown) {
       const memGrant =
         c.memoryGrantMb !== null ? `, memory grant=${c.memoryGrantMb} MB${c.memoryGrantPending ? " (waiting)" : ""}` : "";
       lines.push(
@@ -137,8 +150,13 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
         )}, elapsed ${formatMs(c.elapsedMs)}, logical reads=${c.logicalReads}, physical reads=${c.physicalReads}, writes=${
           c.writes
         }${memGrant}, wait=${c.waitType ?? "-"}${c.blockingSessionId ? `, blocked by ${c.blockingSessionId}` : ""}${
-          c.queryText ? ` — ${c.queryText}` : ""
+          c.queryText ? ` — ${truncate(c.queryText, MAX_QUERY_CHARS)}` : ""
         }`
+      );
+    }
+    if (data.consumers.length > shown.length) {
+      lines.push(
+        `... and ${data.consumers.length - shown.length} more session(s) not shown here (sorted by CPU) - see the Consumers tab for the full, sortable list.`
       );
     }
   }
@@ -242,11 +260,15 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   } else if (data.deadlocks.length === 0) {
     lines.push("None found in system_health.");
   } else {
-    for (const d of data.deadlocks) {
+    const shown = data.deadlocks.slice(0, MAX_DEADLOCKS_SHOWN);
+    for (const d of shown) {
       lines.push(`- ${new Date(d.timestamp).toLocaleString()}:`);
       lines.push("```xml");
       lines.push(d.xml);
       lines.push("```");
+    }
+    if (data.deadlocks.length > shown.length) {
+      lines.push(`... and ${data.deadlocks.length - shown.length} more deadlock(s) not shown here - see the Deadlocks tab for the full graphs.`);
     }
   }
   lines.push("");

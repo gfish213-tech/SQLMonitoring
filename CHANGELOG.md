@@ -3,13 +3,32 @@
 ## 1.5.0 — 2026-07-08
 
 ### Added
-- **Server picker sorted Development → Staging → Production**: the
-  dropdown on the connect screen no longer follows `servers.json`'s raw
-  order — it's grouped Development first, then Staging, then Production
-  last (anything else, e.g. a deprecated server, sorts after Production),
-  alphabetically by label within each group. Development is also what's
-  pre-selected on load, so the default pick is the lowest-stakes one
-  rather than whatever happened to be listed first in the config file.
+- **Server picker sorted Development → Staging → Production, and remembers
+  your last server**: the dropdown on the connect screen no longer follows
+  `servers.json`'s raw order — it's grouped Development first, then
+  Staging, then Production last (anything else, e.g. a deprecated server,
+  sorts after Production), alphabetically by label within each group.
+  Development is also what's pre-selected on load, so the default pick is
+  the lowest-stakes one rather than whatever happened to be listed first
+  in the config file — unless you've connected to a server before, in
+  which case that one (remembered in the browser via `localStorage`) is
+  pre-selected instead, so monitoring the same server every day doesn't
+  mean reselecting it every time.
+- **Diagnosis banner no longer repeats on every tab**: it now renders only
+  on the Overview tab instead of staying pinned above whatever tab you've
+  switched to — its "View details →" jump buttons still work the same way
+  from there, you just don't see the banner itself again once you've
+  navigated to, say, Blocking or Consumers.
+- **Copy for AI capped to avoid dumping thousands of lines on a busy
+  server**: since Top Resource Consumers now returns every active request
+  uncapped, and deadlock XML / blocking-chain query text can each be
+  individually huge, a real production snapshot could paste 6,000+ lines
+  into a chat — mostly redundant, expensive context. Query text is now
+  truncated to 200 characters, Consumers to the top 25 (already CPU-sorted
+  from the server), blocked sessions per lead blocker to 15, and deadlock
+  graphs to the 3 most recent — each cap adds a "... and N more, see the
+  X tab" line rather than silently dropping data. The on-screen tables
+  themselves are unaffected; only the AI-facing text is trimmed.
 - **`start.bat` checks prerequisites upfront**: Git, Node.js, and npm are
   verified on `PATH` before anything else runs, failing fast with a
   specific, named message and a download link if one is missing — a

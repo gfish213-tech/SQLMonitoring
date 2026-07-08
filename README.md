@@ -41,7 +41,10 @@ The dropdown always lists Development first, then Staging, then Production
 last (alphabetically within each group) regardless of the order in the JSON
 file — Development is also what's pre-selected by default, so picking the
 wrong server by habit defaults to the safest one, not whichever happened to
-be listed first. Optional per-entry overrides: `database` (default `master`),
+be listed first. That default is overridden by whichever server you
+actually connected to last time (remembered in the browser), so you don't
+have to reselect your usual server on every visit. Optional per-entry
+overrides: `database` (default `master`),
 `port`, `instanceName`, `encrypt`, `trustServerCertificate` — useful if one
 server needs something different from the defaults.
 
@@ -105,18 +108,20 @@ paste into an AI chat for a second opinion or deeper analysis.
 
 ## What it shows
 
-At the top, a **diagnosis banner** scores all 12 panels against thresholds
-(e.g. blocking wait time, signal wait %, log/tempdb fullness, I/O latency) and
-states the single most likely cause in plain language, with any other factors
-that crossed a threshold available in a "N other potential factors"
-expandable list — each with a **View details →** button that jumps straight
-to the relevant tab. Every finding also carries a **💡 What to do** line — a
-concrete first-response action (who to contact, what to kill and what never
-to kill, whether it's a log backup or a shrink, which tab to check next) so
-the tool doesn't just name the cause but says what to actually do about it.
-If nothing crossed a threshold, it says so plainly instead of guessing. This
-is a heuristic pointer to where to look first, not a replacement for reading
-the panel it points to.
+At the top of the **Overview** tab, a **diagnosis banner** scores all 12
+panels against thresholds (e.g. blocking wait time, signal wait %,
+log/tempdb fullness, I/O latency) and states the single most likely cause
+in plain language, with any other factors that crossed a threshold
+available in a "N other potential factors" expandable list — each with a
+**View details →** button that jumps straight to the relevant tab. Every
+finding also carries a **💡 What to do** line — a concrete first-response
+action (who to contact, what to kill and what never to kill, whether it's
+a log backup or a shrink, which tab to check next) so the tool doesn't
+just name the cause but says what to actually do about it. If nothing
+crossed a threshold, it says so plainly instead of guessing. This is a
+heuristic pointer to where to look first, not a replacement for reading
+the panel it points to — check the Overview tab first, then dig into
+whichever tab it points you at.
 
 Below that, a **tab strip** (pinned to the top while you scroll) switches
 between Overview, Blocking, Consumers, Backups, Agent Jobs, Waits, Log

@@ -426,11 +426,26 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
   sentences rather than relying on visual layout (color, borders, table
   alignment) to carry meaning, since none of that survives being pasted into
   a chat. Update this alongside `types.ts` when an API response shape
-  changes, the same as the panel components.
+  changes, the same as the panel components. Since `consumers.ts` now
+  returns every active request uncapped (see above), and deadlock XML /
+  blocking-chain query text can be individually huge, this text caps what
+  it includes so a real production snapshot doesn't balloon into thousands
+  of lines of mostly-redundant AI context: query text is truncated to
+  `MAX_QUERY_CHARS` (200), Consumers to the first `MAX_CONSUMERS_SHOWN`
+  (25, already CPU-sorted from the server), blocked sessions per lead
+  blocker to `MAX_BLOCKED_SHOWN` (15), and deadlock graphs to
+  `MAX_DEADLOCKS_SHOWN` (3) — each cap adds a "... and N more, see the
+  X tab" line rather than silently dropping data, since the on-screen
+  tables themselves stay uncapped; this text is meant as AI-diagnostic
+  context, not a full data dump.
 - **Tabbed layout**: `App.tsx`'s `Dashboard` renders exactly one tab's
   content at a time via `activeTab` state (`DashboardTab` in `types.ts`) —
-  only Diagnosis and the sticky toolbar are always visible; everything
-  else (Overview+Pressure+TempDB+VolumeSpace together as the "Overview"
+  the sticky toolbar is always visible, but `DiagnosisSummary` only renders
+  on the Overview tab (`activeTab === "overview"`), not repeated on every
+  tab switch — its "View details →" buttons still work from there to jump
+  straight to the relevant tab, you just don't see the banner itself again
+  once you've navigated away from Overview. Everything else
+  (Overview+Pressure+TempDB+VolumeSpace together as the "Overview"
   tab, then one tab each for Blocking, Consumers, Backups, Agent Jobs,
   Waits, Log Space (+VLF counts), IO Latency, Autogrowth, Deadlocks,
   Indexes) is tab-switched, not stacked on one
@@ -477,9 +492,13 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
   Development → Staging → Production (anything else, e.g. "No Longer
   Supported", sorts after Production), alphabetically by label within
   each group — `servers.json`'s own order is not the display order.
-  Deliberately Dev-first: it's also what ends up pre-selected on load, so
-  the default pick is the safest one, not whatever happened to be first
-  in the config file.
+  Deliberately Dev-first: it's also what ends up pre-selected on load,
+  so the default pick is the safest one, not whatever happened to be first
+  in the config file — but that default is itself overridden by
+  `localStorage` (`sql-monitor-last-server`, written on every successful
+  `Connect`) if the last-connected server is still present in the current
+  list, so a DBA who always monitors the same server doesn't have to
+  reselect it every time the app loads.
 - `components/ConsumersPanel.tsx` — client-side sort (click a column header
   to sort by it, click again to reverse; nulls always sort last regardless
   of direction) over whatever `consumers` rows the server sent — this is

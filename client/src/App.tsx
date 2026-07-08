@@ -186,7 +186,7 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
 
       {data && (
         <main className="dashboard">
-          <DiagnosisSummary data={data} onJumpToPanel={setActiveTab} isQuickOnly={lastMode === "quick"} />
+          {activeTab === "overview" && <DiagnosisSummary data={data} onJumpToPanel={setActiveTab} isQuickOnly={lastMode === "quick"} />}
           <div className="panel-refresh-row">
             <span className="panel-refresh-label">
               {active?.label}
