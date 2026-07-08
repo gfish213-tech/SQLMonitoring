@@ -93,6 +93,26 @@
   joins need one) — a "-" there is expected, not a bug.
 
 ### Fixed
+- **Current Waits was flooded with SQL Server's own background waits**:
+  the panel's "excludes benign background waits" badge was only
+  half-true — the exclusion list named a handful of wait types by hand,
+  but SQL Server has dozens of internal background wait types (Hekaton/
+  XTP, HADR, full-text, Service Broker, checkpoint, lazy writer, and
+  more added every version), so most of them slipped through and
+  drowned out anything a real incident would show — rows like
+  `WAIT_XTP_HOST_WAIT`, `PVS_PREALLOCATE`, `FT_IFTSHC_MUTEX`,
+  `HADR_NOTIFICATION_DEQUEUE`, `BROKER_TRANSMITTER`, `KSOURCE_WAKEUP`,
+  `ONDEMAND_TASK_QUEUE`, `CHECKPOINT_QUEUE`, `XE_TIMER_EVENT`, and
+  `DIRTY_PAGE_POLL`, all permanently "waiting" for days since the
+  server last restarted. Fixed at the root: every one of those belongs
+  to a SQL Server system worker task, not a user request, so
+  `currentWaits.ts` now joins `sys.dm_exec_sessions` and filters
+  `is_user_process = 1` to exclude the whole category at once instead
+  of trying to keep a hand-written list current. The existing name-based
+  exclusions (now also including `WAITFOR`, since a real user session
+  running this app's own Overview/Pressure 1-second sampling would
+  otherwise show up as "waiting on itself") remain as a second layer for
+  the few benign waits a genuine user session can still generate.
 - **"Query text" was dumping entire stored procedure bodies**: the real
   cause behind Copy for AI's 6,000-line problem, not just row counts.
   `sys.dm_exec_sql_text(sql_handle)` returns the *entire* batch or stored

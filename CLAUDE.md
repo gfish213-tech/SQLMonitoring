@@ -260,6 +260,22 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
     the waiter graph), not just direct waiters — in a chain A←B←C, C waits
     on B but A is still its root cause; each waiter carries `blockedBy` so
     the chain structure stays visible.
+  - `currentWaits.ts` — `sys.dm_os_waiting_tasks` (instantaneous — what's
+    waiting on something *right now*, unlike `sys.dm_os_wait_stats`'s
+    cumulative-since-restart totals, which DBADash already covers).
+    Excluding "benign" system waits by hand-listing wait type names
+    doesn't scale — SQL Server has dozens of internal background wait
+    types (Hekaton/XTP, HADR, full-text, Service Broker, checkpoint, lazy
+    writer, etc.) and adds more every version; every one of them belongs
+    to a SQL Server *system* worker task, not a user request, so the
+    query joins `sys.dm_exec_sessions` and filters `is_user_process = 1`
+    to exclude the whole category at once instead. The remaining
+    name-based exclusions (`WAITFOR`, `%SLEEP%`, a few Service
+    Broker/XE internals) are a second layer for waits a genuine *user*
+    session can still generate that aren't diagnostically interesting —
+    `WAITFOR` specifically because `overview.ts`/`pressure.ts`'s own
+    1-second sampling shows up as a real (if meaningless) wait on this
+    app's own connection otherwise.
   - `overview.ts`, `pressure.ts` — "Batch Requests/sec", the buffer cache
     hit ratio, and signal wait % are all *cumulative-since-restart* sources
     (`PERF_COUNTER_BULK_COUNT` counters / `sys.dm_os_wait_stats`), so these
