@@ -33,7 +33,10 @@ function sortConsumers(consumers: ConsumerRow[], key: SortKey, dir: "asc" | "des
 
 export function ConsumersPanel({ consumers }: { consumers: ConsumerRow[] }) {
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "cpuTimeMs", dir: "desc" });
-  const [hideSa, setHideSa] = useState(false);
+  // Defaults on: "sa" is almost always a maintenance/monitoring login, not the cause of a
+  // slowdown, and it tends to crowd out the sessions actually worth looking at. Still a toggle,
+  // not a hard filter, since an actual incident caused by something running as sa is possible.
+  const [hideSa, setHideSa] = useState(true);
 
   const filtered = useMemo(
     () => (hideSa ? consumers.filter((c) => c.loginName.toLowerCase() !== "sa") : consumers),

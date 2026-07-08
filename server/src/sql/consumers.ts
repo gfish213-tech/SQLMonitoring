@@ -31,6 +31,8 @@ export interface ConsumerRow {
 // by client-side, the true top consumers for that resource are actually in the payload, not just
 // whichever ones happened to also be CPU-heavy. dm_exec_requests only has rows for sessions with
 // something actively running, so this stays cheap even though it's no longer a flat TOP 20.
+// CPU is ranked deepest (top 50 vs. 15/15/10 for reads/writes/memory) since it's the metric most
+// often used to just browse "what's running" rather than hunt a specific resource culprit.
 export async function getCurrentConsumers(): Promise<ConsumerRow[]> {
   const pool = getPool();
   const result = await pool.request().query(`
@@ -83,7 +85,7 @@ export async function getCurrentConsumers(): Promise<ConsumerRow[]> {
       FROM consumers
     )
     SELECT * FROM ranked
-    WHERE rn_cpu <= 20 OR rn_reads <= 15 OR rn_writes <= 15 OR rn_mem <= 10
+    WHERE rn_cpu <= 50 OR rn_reads <= 15 OR rn_writes <= 15 OR rn_mem <= 10
     ORDER BY cpu_time_ms DESC
   `);
 

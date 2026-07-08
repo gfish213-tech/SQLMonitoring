@@ -145,7 +145,8 @@ refresh didn't check (Consumers, IO Latency, Autogrowth, Deadlocks, and
 Indexes are always full-only; TempDB and Disk Volume Space within Overview
 are too) — click **Full Refresh** to check those. Hover the small **ⓘ**
 next to any stat for a one-line explanation of what it means and how it's
-measured; panels with a filtering rule (e.g. "top 20 by CPU time") show
+measured; panels with a filtering rule (e.g. "top sessions by CPU, disk
+IO, or memory") show
 that rule in their header at all times, not only when the panel happens to
 be empty.
 
@@ -171,8 +172,10 @@ and Plan Cache/Ad-hoc query stats — and the rest are one tab each:
   the amount a session currently holds, or "waiting for N MB" in amber if
   it's queued behind one (most sessions never need a grant at all; a "-"
   here is normal) — and the actual query text. A "Hide 'sa' session"
-  checkbox (off by default) is there if a maintenance/monitoring login
-  clutters the list. This is the one panel that answers "who's using the
+  checkbox (**on** by default, since `sa` is almost always
+  maintenance/monitoring noise rather than the actual cause — uncheck it
+  if you need to see everything) filters that login out. This is the one
+  panel that answers "who's using the
   most CPU, memory, or disk I/O right now, and what exactly is it running"
   in a single table.
 - **Current Waits** — what's actually being waited on right now.

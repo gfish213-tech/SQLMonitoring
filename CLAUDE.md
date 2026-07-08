@@ -268,11 +268,12 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
     not CPU-heavy — it would never even be fetched, so no client-side sort
     could surface it. Instead the query ranks the same row set four ways
     with `ROW_NUMBER()` (CPU, physical reads, writes, memory) and keeps the
-    union of each ranking's top rows (`rn_cpu <= 20 OR rn_reads <= 15 OR
-    rn_writes <= 15 OR rn_mem <= 10`), so whichever column
+    union of each ranking's top rows (`rn_cpu <= 50 OR rn_reads <= 15 OR
+    rn_writes <= 15 OR rn_mem <= 10` — CPU ranked deepest since it's also
+    the metric used to just browse "what's running"), so whichever column
     `ConsumersPanel.tsx` is sorted by client-side, the genuine top
     consumers for that resource are actually in the payload. This can
-    return more than 20 rows now (up to the sum of the thresholds, though
+    return more than 50 rows now (up to the sum of the thresholds, though
     real overlap between "CPU-heavy" and "IO-heavy" keeps it well under
     that in practice) — `dm_exec_requests` only has rows for sessions with
     something actively running, so this stays cheap despite no longer
@@ -471,8 +472,9 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
   the union of top-by-CPU/reads/writes/memory (see `sql/*.ts` above). Also
   has a client-only "Hide 'sa' session" checkbox (`loginName.toLowerCase()
   === "sa"`, case-insensitive) for filtering out a maintenance/monitoring
-  login that clutters the list; defaults unchecked (show everything) since
-  silently hiding a session by default risks hiding the actual cause.
+  login that clutters the list; defaults **on** (`sa` is almost always
+  noise, not the cause) but stays a toggle, not a hard filter, since an
+  incident genuinely caused by something running as `sa` is possible.
 - `components/Section.tsx` — shared wrapper for panels with an empty state;
   most panel components use it. `OverviewBar`, `PressurePanel`, and
   `TempdbPanel` render their own stat grids directly instead (no

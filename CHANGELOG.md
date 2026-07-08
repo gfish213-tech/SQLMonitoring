@@ -22,8 +22,11 @@
   returns the union of the top sessions by CPU, physical reads, writes,
   and memory grant, so whichever column you sort by, the genuine top
   consumers for that resource are actually there. A "Hide 'sa' session"
-  checkbox (off by default) filters out that login client-side for anyone
-  whose maintenance/monitoring tools connect as `sa` and clutter the list.
+  checkbox (**on** by default — `sa` is almost always maintenance/
+  monitoring noise, not the cause; uncheck it to see everything) filters
+  out that login client-side. The CPU ranking also goes deeper than the
+  other three (top 50 vs. 15/15/10 for reads/writes/memory), since CPU is
+  also the metric used to just browse "what's currently running."
 - **Physical disk reads and memory grants in Top Resource Consumers**: the
   Consumers panel already showed CPU, elapsed time, logical reads, and the
   live query text per session — now it also shows `physicalReads` (real

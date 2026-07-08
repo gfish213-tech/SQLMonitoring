@@ -121,7 +121,8 @@ been checked yet (run **Full Refresh** to check it).
 
 Numbers and panels that could otherwise be misread carry a hint: stats with
 a small **ⓘ** explain what's being measured (hover it), and panels with a
-filtering rule (e.g. "top 20 by CPU time", "last 24 hours") show that rule
+filtering rule (e.g. "top sessions by CPU, disk IO, or memory", "last 24
+hours") show that rule
 in their header at all times, not just when the panel happens to be empty.
 
 Each section below states plainly when there's nothing to report (e.g. "No blocking
@@ -139,7 +140,8 @@ detected") so ruling a cause in or out is a glance, not a read:
   writes, TempDB usage, memory grant (held or waiting), and the actual
   query text — one place to see who's driving CPU, memory, and disk I/O
   right now, and what it's running. Click any resource column to sort by
-  it; a "Hide 'sa' session" checkbox filters out that login.
+  it; a "Hide 'sa' session" checkbox (on by default) filters out that
+  login, since it's almost always maintenance/monitoring noise.
 - **Current Waits** — what's actually being waited on right now.
 - **CPU & Memory Pressure** — signal wait % (CPU pressure), page life
   expectancy, buffer cache hit ratio, pending memory grants, and worker
