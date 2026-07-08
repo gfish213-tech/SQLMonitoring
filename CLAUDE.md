@@ -546,9 +546,18 @@ When making a meaningful change (new feature, endpoint, DMV query, behavior
 change, or bug fix worth noting), update these alongside the code — don't
 leave them to drift:
 
-- `CHANGELOG.md` — add an entry under a new version heading (or an
-  `Unreleased` section if no version bump is requested) describing what
-  changed.
+- `CHANGELOG.md` — versioned by date, not by feature: every change lands
+  under a `## X.Y.Z — YYYY-MM-DD` heading for the date it actually shipped,
+  never under a bare `Unreleased` heading. Before adding an entry, check
+  whether the top-most version heading is already dated today — if so,
+  add the new bullet into that section's existing `### Added` / `### Fixed`
+  / `### Changed` subsection (creating the subsection if today's version
+  doesn't have one yet) rather than creating a second heading for the same
+  day. Only start a new `## X.Y.Z — YYYY-MM-DD` heading (bumping the patch
+  number, or minor for a larger change) when the date has actually rolled
+  over since the last entry. This keeps one version per calendar day of
+  work, however many separate changes landed that day, instead of an
+  ever-growing `Unreleased` bucket or one version per commit.
 - `README.md` — update if the feature list, stack, or high-level "what it
   shows" section is affected.
 - `INSTRUCTIONS.md` — update if setup steps, commands, or user-facing usage

@@ -1,6 +1,6 @@
 # Version History
 
-## Unreleased
+## 1.5.0 — 2026-07-08
 
 ### Added
 - **Per-tab refresh**: a "↻ Refresh &lt;Tab&gt;" button now sits above every
