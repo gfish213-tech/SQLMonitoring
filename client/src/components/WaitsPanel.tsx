@@ -8,7 +8,12 @@ export function WaitsPanel({ waits }: { waits: CurrentWaitRow[] }) {
     <Section
       id="panel-waits"
       title="Current Waits"
-      badge={<span className="panel-hint">excludes benign background waits · hover a wait type for what it means</span>}
+      badge={
+        <span className="panel-hint">
+          excludes benign background waits · one row per session+wait type, Tasks shows parallel worker count · hover a wait type for
+          what it means
+        </span>
+      }
       isEmpty={waits.length === 0}
       emptyText="No sessions are currently waiting on anything notable."
     >
@@ -19,6 +24,7 @@ export function WaitsPanel({ waits }: { waits: CurrentWaitRow[] }) {
               <th className="num">Session</th>
               <th>DB</th>
               <th>Wait Type</th>
+              <th className="num">Tasks</th>
               <th className="num">Waiting</th>
               <th>Resource</th>
             </tr>
@@ -31,8 +37,12 @@ export function WaitsPanel({ waits }: { waits: CurrentWaitRow[] }) {
                 <td className="wait-type-cell" title={describeWaitType(w.waitType) ?? undefined}>
                   {w.waitType}
                 </td>
+                <td className="num">{w.taskCount}</td>
                 <td className="num">{formatMs(w.waitDurationMs)}</td>
-                <td title={w.resourceDescription ?? undefined}>{w.resourceDescription ?? "-"}</td>
+                <td title={w.taskCount > 1 ? `One of ${w.taskCount} parallel worker tasks - each has its own resource id` : (w.resourceDescription ?? undefined)}>
+                  {w.resourceDescription ?? "-"}
+                  {w.taskCount > 1 ? ` (+${w.taskCount - 1} more)` : ""}
+                </td>
               </tr>
             ))}
           </tbody>

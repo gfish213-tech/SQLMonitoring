@@ -153,6 +153,28 @@
   is now wrapped in `try`/`catch` → empty results, matching the same
   fail-soft pattern already used for the trace-/extended-events-based
   checks, so one slow panel can no longer sink the rest of a refresh.
+- **Current Waits could be dominated by one session's parallel worker
+  threads**: `sys.dm_os_waiting_tasks` has one row per *task*, and a
+  parallel query has one worker thread per degree of parallelism, so a
+  single session running an 8-way parallel query could show up as 8+
+  near-identical rows (same session, same wait type, same wait duration,
+  differing only in an internal exchange/pipe id) — burying every other
+  session's waits underneath it. `currentWaits.ts` now groups by
+  (session, wait type), reporting a task count instead of one row per
+  task; the Waits tab shows the count in a new "Tasks" column, and Copy
+  for AI notes it inline ("across 8 parallel tasks").
+
+### Changed
+- **Copy for AI no longer includes this app's own "Suggested action"
+  advice text**: the plain-text snapshot is meant to be pasted into an
+  actual AI chat, which can reason about the raw facts (what's wrong, on
+  what, since when) and formulate its own recommendation — repeating
+  this app's canned advice paragraph, once per finding, was pure token
+  waste on real production snapshots with many similar findings (e.g.
+  a dozen VLF-fragmented databases, each repeating the identical
+  paragraph about DBCC SHRINKFILE). The on-screen "What to do" advice
+  boxes (`DiagnosisSummary.tsx`) are unaffected — this only trims the
+  copy-to-clipboard text.
 
 ## 1.4.0 — 2026-07-07
 

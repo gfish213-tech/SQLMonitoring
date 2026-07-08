@@ -34,16 +34,19 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   if (findings.length === 0) {
     lines.push("No obvious cause detected - nothing crossed a concerning threshold in this snapshot.");
   } else {
+    // Deliberately no "Suggested action" text here, unlike the on-screen advice boxes (see
+    // DiagnosisSummary.tsx) - this text is meant to be pasted into an actual AI chat, which can
+    // formulate its own recommendation from the raw facts below. Repeating this app's own canned
+    // advice paragraph (verbatim, once per finding) wastes tokens on something the AI reading it
+    // doesn't need - the facts (what's wrong, on what, since when) are the point of this section.
     const [top, ...rest] = findings;
     lines.push(`Most likely cause (${top.severity}): ${top.panel} — ${top.title}`);
     lines.push(top.detail);
-    lines.push(`Suggested action: ${top.advice}`);
     if (rest.length > 0) {
       lines.push("");
       lines.push("Other potential factors:");
       for (const f of rest) {
         lines.push(`- [${f.severity}] ${f.panel}: ${f.title} — ${f.detail}`);
-        lines.push(`  Suggested action: ${f.advice}`);
       }
     }
   }
@@ -162,12 +165,13 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   }
   lines.push("");
 
-  lines.push("## Current Waits (excludes benign background waits)");
+  lines.push("## Current Waits (excludes benign background waits; one row per session+wait type)");
   if (data.waits.length === 0) {
     lines.push("No notable waits.");
   } else {
     for (const w of data.waits) {
-      lines.push(`- Session ${w.sessionId} on ${w.databaseName ?? "-"} — ${w.waitType} for ${formatMs(w.waitDurationMs)} (${w.resourceDescription ?? "-"})`);
+      const tasks = w.taskCount > 1 ? ` across ${w.taskCount} parallel tasks` : "";
+      lines.push(`- Session ${w.sessionId} on ${w.databaseName ?? "-"} — ${w.waitType} for ${formatMs(w.waitDurationMs)}${tasks} (${w.resourceDescription ?? "-"})`);
     }
   }
   lines.push("");

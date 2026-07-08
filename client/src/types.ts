@@ -102,6 +102,7 @@ export interface CurrentWaitRow {
   waitDurationMs: number;
   resourceDescription: string | null;
   databaseName: string | null;
+  taskCount: number;
 }
 
 export interface PressureStats {

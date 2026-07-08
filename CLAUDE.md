@@ -275,7 +275,17 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
     session can still generate that aren't diagnostically interesting —
     `WAITFOR` specifically because `overview.ts`/`pressure.ts`'s own
     1-second sampling shows up as a real (if meaningless) wait on this
-    app's own connection otherwise.
+    app's own connection otherwise. Grouped by `(session_id, wait_type)`
+    (`COUNT(*)` as `taskCount`, `MAX(wait_duration_ms)` as the reported
+    duration, `MIN(resource_description)` as one representative example) —
+    `sys.dm_os_waiting_tasks` has one row per *task*, and a parallel query
+    has one worker thread per degree of parallelism, so without this a
+    single session running an 8-way parallel query shows up as 8+
+    near-identical rows (same session, same wait type, differing only in
+    an internal exchange/pipe id), burying every other session's waits.
+    `WaitsPanel.tsx` shows the count in a "Tasks" column and appends
+    "(+N more)" to the resource description when grouped; `summary.ts`
+    notes it inline ("across N parallel tasks").
   - `overview.ts`, `pressure.ts` — "Batch Requests/sec", the buffer cache
     hit ratio, and signal wait % are all *cumulative-since-restart* sources
     (`PERF_COUNTER_BULK_COUNT` counters / `sys.dm_os_wait_stats`), so these
@@ -449,18 +459,30 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
   action, written for mid-incident use (what to kill and what never to
   kill, log backup vs. shrink, which tab to check next) — rendered as a
   "💡 What to do" box under the top finding and inline under each item in
-  the expandable list, and as "Suggested action" lines in `summary.ts`'s
-  Copy-for-AI text. A new finding in `diagnosis.ts` must include advice;
+  the expandable list. A new finding in `diagnosis.ts` must include advice;
   keep it action-first and warn about destructive options' consequences
   (e.g. KILL rolls back) rather than just naming the metric again.
+  `summary.ts`'s Copy-for-AI text deliberately does *not* include `advice`
+  (see below) — it's an on-screen-only field for a human skimming the
+  dashboard.
 - `summary.ts` — `buildSummaryText(data, connection)` renders the whole
   snapshot (diagnosis + every panel) as plain text for the **Copy for AI**
   button in `App.tsx`'s refresh bar (`navigator.clipboard.writeText`, with a
   transient "Copied!" label). Deliberately spells everything out in full
   sentences rather than relying on visual layout (color, borders, table
   alignment) to carry meaning, since none of that survives being pasted into
-  a chat. Update this alongside `types.ts` when an API response shape
-  changes, the same as the panel components. Since `consumers.ts` now
+  a chat. The Diagnosis section intentionally omits each `Finding`'s
+  `advice` string (unlike the on-screen banner/list, which do show it) —
+  this text is meant to be pasted into an actual AI chat, which can
+  reason about the raw facts and formulate its own recommendation; echoing
+  this app's own canned advice paragraph back at it, once per finding, is
+  pure token waste on a real production snapshot with many similar
+  findings (e.g. a dozen VLF-fragmented databases each repeating the
+  identical DBCC SHRINKFILE paragraph) — don't reintroduce it here even
+  though `Finding.advice` still exists and is still required for the
+  on-screen component. Update this alongside `types.ts` when an API
+  response shape changes, the same as the panel components. Since
+  `consumers.ts` now
   returns every active request uncapped (see above), and deadlock XML can
   be individually huge, this text caps what it includes so a real
   production snapshot doesn't balloon into thousands of lines of
