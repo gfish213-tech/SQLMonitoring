@@ -121,9 +121,9 @@ been checked yet (run **Full Refresh** to check it).
 
 Numbers and panels that could otherwise be misread carry a hint: stats with
 a small **ⓘ** explain what's being measured (hover it), and panels with a
-filtering rule (e.g. "top sessions by CPU, disk IO, or memory", "last 24
-hours") show that rule
-in their header at all times, not just when the panel happens to be empty.
+filtering rule (e.g. "only databases over 50% log used", "last 24 hours")
+show that rule in their header at all times, not just when the panel
+happens to be empty.
 
 Each section below states plainly when there's nothing to report (e.g. "No blocking
 detected") so ruling a cause in or out is a glance, not a read:
@@ -133,14 +133,14 @@ detected") so ruling a cause in or out is a glance, not a read:
 - **Backups & Long-Running Operations** — BACKUP/RESTORE/DBCC/index rebuilds in
   progress, with % complete and ETA.
 - **Running Agent Jobs** — currently-executing job steps with live CPU/IO.
-- **Top Resource Consumers (Right Now)** — active sessions, returned as the
-  union of the top consumers by CPU, disk IO, and memory grant (not just a
-  CPU-sorted list, so an IO- or memory-heavy session that isn't a top CPU
-  consumer still shows up); each row shows logical vs. physical disk reads,
-  writes, TempDB usage, memory grant (held or waiting), and the actual
-  query text — one place to see who's driving CPU, memory, and disk I/O
-  right now, and what it's running. Click any resource column to sort by
-  it; a "Hide 'sa' session" checkbox (on by default) filters out that
+- **Top Resource Consumers (Right Now)** — every currently active session,
+  unfiltered (no "top N" cap — `sys.dm_exec_requests` only has rows for
+  requests actually executing right now, so this is naturally small); each
+  row shows CPU, logical vs. physical disk reads, writes, TempDB usage,
+  memory grant (held or waiting), and the actual query text — one place to
+  see who's driving CPU, memory, and disk I/O right now, and what it's
+  running. Click any resource column to sort by it; a "Hide 'sa' session"
+  checkbox (on by default) filters out that
   login, since it's almost always maintenance/monitoring noise.
 - **Current Waits** — what's actually being waited on right now.
 - **CPU & Memory Pressure** — signal wait % (CPU pressure), page life

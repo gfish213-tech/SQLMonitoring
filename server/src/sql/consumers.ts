@@ -23,70 +23,56 @@ export interface ConsumerRow {
 // What's actually consuming resources right now (not cumulative since restart) — this is "what's
 // making the server slow right now", not history.
 //
-// A single "TOP N ORDER BY cpu_time" would miss a session that's driving heavy disk IO or holding
-// a huge memory grant but isn't a top CPU consumer - it would never even be fetched, so no amount
-// of client-side re-sorting could surface it (sorting only reorders rows that already arrived).
-// Instead this ranks the same row set four ways (CPU, physical reads, writes, memory) with
-// ROW_NUMBER() and keeps the union of each ranking's top rows - so whichever column a DBA sorts
-// by client-side, the true top consumers for that resource are actually in the payload, not just
-// whichever ones happened to also be CPU-heavy. dm_exec_requests only has rows for sessions with
-// something actively running, so this stays cheap even though it's no longer a flat TOP 20.
-// CPU is ranked deepest (top 50 vs. 15/15/10 for reads/writes/memory) since it's the metric most
-// often used to just browse "what's running" rather than hunt a specific resource culprit.
+// No TOP N / row cap: sys.dm_exec_requests only has a row per request that is *currently
+// executing* - idle/sleeping sessions never appear here at all - so this is already bounded by
+// real concurrent work (in practice capped by CPU core count / max worker threads), not by total
+// connections. An artificial cap on top of that natural bound is what caused the original bug
+// (a session heavy on IO or memory but not CPU could fall outside a "TOP 20 by cpu_time" and never
+// even be fetched, so no client-side sort could surface it) - simplest fix is to not cap it at
+// all and let the client sort/filter the full, already-small result set instead of trying to
+// predict server-side which rows might matter.
 export async function getCurrentConsumers(): Promise<ConsumerRow[]> {
   const pool = getPool();
   const result = await pool.request().query(`
-    WITH consumers AS (
+    SELECT
+      r.session_id,
+      s.login_name,
+      s.host_name,
+      s.program_name,
+      DB_NAME(r.database_id) AS database_name,
+      r.command,
+      r.cpu_time AS cpu_time_ms,
+      r.logical_reads,
+      r.reads AS physical_reads,
+      r.writes,
+      r.total_elapsed_time AS elapsed_ms,
+      r.wait_type,
+      NULLIF(r.blocking_session_id, 0) AS blocking_session_id,
+      tsu.tempdb_mb,
+      mg.granted_memory_kb,
+      mg.requested_memory_kb,
+      mg.grant_time,
+      qt.text AS query_text
+    FROM sys.dm_exec_requests r
+    INNER JOIN sys.dm_exec_sessions s ON s.session_id = r.session_id
+    OUTER APPLY sys.dm_exec_sql_text(r.sql_handle) qt
+    OUTER APPLY (
       SELECT
-        r.session_id,
-        s.login_name,
-        s.host_name,
-        s.program_name,
-        DB_NAME(r.database_id) AS database_name,
-        r.command,
-        r.cpu_time AS cpu_time_ms,
-        r.logical_reads,
-        r.reads AS physical_reads,
-        r.writes,
-        r.total_elapsed_time AS elapsed_ms,
-        r.wait_type,
-        NULLIF(r.blocking_session_id, 0) AS blocking_session_id,
-        tsu.tempdb_mb,
-        mg.granted_memory_kb,
-        mg.requested_memory_kb,
-        mg.grant_time,
-        qt.text AS query_text
-      FROM sys.dm_exec_requests r
-      INNER JOIN sys.dm_exec_sessions s ON s.session_id = r.session_id
-      OUTER APPLY sys.dm_exec_sql_text(r.sql_handle) qt
-      OUTER APPLY (
-        SELECT
-          CAST(SUM(u.user_objects_alloc_page_count + u.internal_objects_alloc_page_count
-            - u.user_objects_dealloc_page_count - u.internal_objects_dealloc_page_count) * 8.0 / 1024 AS DECIMAL(10, 2))
-          AS tempdb_mb
-        FROM sys.dm_db_session_space_usage u
-        WHERE u.session_id = r.session_id
-      ) tsu
-      -- Most requests never need a workspace memory grant (sorts/hashes/large joins do); this is
-      -- NULL for the common case, which the client renders as "-", not a bug.
-      OUTER APPLY (
-        SELECT TOP 1 g.granted_memory_kb, g.requested_memory_kb, g.grant_time
-        FROM sys.dm_exec_query_memory_grants g
-        WHERE g.session_id = r.session_id
-      ) mg
-      WHERE r.session_id <> @@SPID
-    ),
-    ranked AS (
-      SELECT *,
-        ROW_NUMBER() OVER (ORDER BY cpu_time_ms DESC) AS rn_cpu,
-        ROW_NUMBER() OVER (ORDER BY physical_reads DESC) AS rn_reads,
-        ROW_NUMBER() OVER (ORDER BY writes DESC) AS rn_writes,
-        ROW_NUMBER() OVER (ORDER BY COALESCE(granted_memory_kb, requested_memory_kb, 0) DESC) AS rn_mem
-      FROM consumers
-    )
-    SELECT * FROM ranked
-    WHERE rn_cpu <= 50 OR rn_reads <= 15 OR rn_writes <= 15 OR rn_mem <= 10
-    ORDER BY cpu_time_ms DESC
+        CAST(SUM(u.user_objects_alloc_page_count + u.internal_objects_alloc_page_count
+          - u.user_objects_dealloc_page_count - u.internal_objects_dealloc_page_count) * 8.0 / 1024 AS DECIMAL(10, 2))
+        AS tempdb_mb
+      FROM sys.dm_db_session_space_usage u
+      WHERE u.session_id = r.session_id
+    ) tsu
+    -- Most requests never need a workspace memory grant (sorts/hashes/large joins do); this is
+    -- NULL for the common case, which the client renders as "-", not a bug.
+    OUTER APPLY (
+      SELECT TOP 1 g.granted_memory_kb, g.requested_memory_kb, g.grant_time
+      FROM sys.dm_exec_query_memory_grants g
+      WHERE g.session_id = r.session_id
+    ) mg
+    WHERE r.session_id <> @@SPID
+    ORDER BY r.cpu_time DESC
   `);
 
   return result.recordset.map((row) => ({

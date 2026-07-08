@@ -145,10 +145,9 @@ refresh didn't check (Consumers, IO Latency, Autogrowth, Deadlocks, and
 Indexes are always full-only; TempDB and Disk Volume Space within Overview
 are too) — click **Full Refresh** to check those. Hover the small **ⓘ**
 next to any stat for a one-line explanation of what it means and how it's
-measured; panels with a filtering rule (e.g. "top sessions by CPU, disk
-IO, or memory") show
-that rule in their header at all times, not only when the panel happens to
-be empty.
+measured; panels with a filtering rule (e.g. "only databases over 50%
+log used") show that rule in their header at all times, not only when the
+panel happens to be empty.
 
 Every panel states plainly when there's nothing to report, so ruling a cause
 in or out is a glance. The **Overview** tab combines the always-on server
@@ -161,23 +160,24 @@ and Plan Cache/Ad-hoc query stats — and the rest are one tab each:
 - **Backups & Long-Running Operations** — BACKUP/RESTORE/DBCC/index rebuild
   progress with ETA.
 - **Running Agent Jobs** — currently-executing jobs with live CPU/IO.
-- **Top Resource Consumers (Right Now)** — active sessions, returned as
-  whichever are the top consumers by CPU, disk IO (physical reads/writes),
-  *or* memory grant — not just a CPU-sorted list, so a session that's
-  hammering the disk or holding a huge memory grant but isn't CPU-heavy
-  still shows up. Click any of the resource column headers (CPU, Elapsed,
-  Logical/Physical Reads, Writes, TempDB, Memory Grant) to sort by it,
-  click again to reverse — that's instant, it's just re-ordering rows
-  already on the page. Each row also shows a Memory Grant column — either
-  the amount a session currently holds, or "waiting for N MB" in amber if
-  it's queued behind one (most sessions never need a grant at all; a "-"
-  here is normal) — and the actual query text. A "Hide 'sa' session"
-  checkbox (**on** by default, since `sa` is almost always
-  maintenance/monitoring noise rather than the actual cause — uncheck it
-  if you need to see everything) filters that login out. This is the one
-  panel that answers "who's using the
-  most CPU, memory, or disk I/O right now, and what exactly is it running"
-  in a single table.
+- **Top Resource Consumers (Right Now)** — every currently active request,
+  with no "top N" cap: `sys.dm_exec_requests` only has a row for a request
+  that's actually executing right now (an idle session never appears
+  here), so the list is already naturally small — no risk of a session
+  that's hammering the disk or holding a huge memory grant but isn't
+  CPU-heavy getting cut off before you ever see it. Click any of the
+  resource column headers (CPU, Elapsed, Logical/Physical Reads, Writes,
+  TempDB, Memory Grant) to sort by it, click again to reverse — that's
+  instant, it's just re-ordering rows already on the page. The Memory
+  Grant column shows either the amount a session currently holds, or
+  "waiting for N MB" in amber if it's queued behind one (most sessions
+  never need a grant at all; a "-" here is normal) — and every row shows
+  the actual query text. A "Hide 'sa' session" checkbox (**on** by
+  default, since `sa` is almost always maintenance/monitoring noise
+  rather than the actual cause — uncheck it if you need to see
+  everything) filters that login out. This is the one panel that answers
+  "who's using the most CPU, memory, or disk I/O right now, and what
+  exactly is it running" in a single table.
 - **Current Waits** — what's actually being waited on right now.
 - **CPU & Memory Pressure** — signal wait % (CPU pressure indicator), page
   life expectancy, buffer cache hit ratio, pending memory grants, runnable

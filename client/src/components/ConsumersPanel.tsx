@@ -15,10 +15,11 @@ const SORT_COLUMNS: { key: SortKey; label: string }[] = [
   { key: "memoryGrantMb", label: "Memory Grant" },
 ];
 
-// All 20 rows are already fetched in one shot, so re-sorting by a different resource is free -
-// no new query needed, just re-ordering what's already in the browser. Nulls (e.g. no memory
-// grant, no TempDB usage) always sort last regardless of direction, so "who's using the most X"
-// never buries real numbers under a page of dashes.
+// The full row set is already fetched in one shot (see consumers.ts - no server-side cap), so
+// re-sorting by a different resource is free: no new query, just re-ordering what's already in
+// the browser, and no risk of a real top consumer being missing because it didn't make some
+// server-side "top N" cut. Nulls (e.g. no memory grant, no TempDB usage) always sort last
+// regardless of direction, so "who's using the most X" never buries real numbers under dashes.
 function sortConsumers(consumers: ConsumerRow[], key: SortKey, dir: "asc" | "desc"): ConsumerRow[] {
   const sign = dir === "asc" ? 1 : -1;
   return [...consumers].sort((a, b) => {
@@ -67,7 +68,7 @@ export function ConsumersPanel({ consumers }: { consumers: ConsumerRow[] }) {
       title="Top Resource Consumers (Right Now)"
       badge={
         <span className="panel-badge-row">
-          <span className="panel-hint">top sessions by CPU, disk IO, or memory — click a column to sort</span>
+          <span className="panel-hint">every currently active request — click a column to sort</span>
           <label className="panel-filter-toggle">
             <input type="checkbox" checked={hideSa} onChange={(e) => setHideSa(e.target.checked)} />
             Hide "sa" session{hideSa && hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ""}

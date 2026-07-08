@@ -12,21 +12,23 @@
   Merges into the existing snapshot, so every other tab's data is left
   untouched, and shows its own "panel refreshed HH:MM:SS" timestamp
   separate from the main "Last updated" time.
-- **Sortable, filterable Top Resource Consumers**: click any resource
-  column header (CPU, Elapsed, Logical/Physical Reads, Writes, TempDB,
-  Memory Grant) to sort by it, click again to reverse — free re-ordering
-  of already-fetched rows, no new query. The underlying query itself also
-  changed: it used to be a flat "top 20 by CPU," which meant a session
-  that was IO- or memory-heavy but not CPU-heavy would never even be
-  fetched, so no amount of client-side sorting could surface it. It now
-  returns the union of the top sessions by CPU, physical reads, writes,
-  and memory grant, so whichever column you sort by, the genuine top
-  consumers for that resource are actually there. A "Hide 'sa' session"
+- **Sortable, filterable, uncapped Top Resource Consumers**: click any
+  resource column header (CPU, Elapsed, Logical/Physical Reads, Writes,
+  TempDB, Memory Grant) to sort by it, click again to reverse — free
+  re-ordering of already-fetched rows, no new query. The underlying query
+  itself also changed: it used to be a flat "top 20 by CPU," which meant a
+  session that was IO- or memory-heavy but not CPU-heavy would never even
+  be fetched, so no amount of client-side sorting could surface it. Rather
+  than trying to predict server-side which rows might matter (an
+  intermediate version ranked CPU/reads/writes/memory separately and
+  unioned each ranking's top rows), the query now simply returns every
+  currently active request with **no cap at all** — `sys.dm_exec_requests`
+  only has a row per request that's actually executing right now, so the
+  result is already naturally small, and sorting/filtering client-side has
+  zero risk of missing a genuine top consumer. A "Hide 'sa' session"
   checkbox (**on** by default — `sa` is almost always maintenance/
   monitoring noise, not the cause; uncheck it to see everything) filters
-  out that login client-side. The CPU ranking also goes deeper than the
-  other three (top 50 vs. 15/15/10 for reads/writes/memory), since CPU is
-  also the metric used to just browse "what's currently running."
+  out that login client-side.
 - **Physical disk reads and memory grants in Top Resource Consumers**: the
   Consumers panel already showed CPU, elapsed time, logical reads, and the
   live query text per session — now it also shows `physicalReads` (real

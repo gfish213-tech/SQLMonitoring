@@ -263,21 +263,17 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
     present means the session is queued waiting on a grant, not holding
     one; `memoryGrantPending` distinguishes the two states, and
     `memoryGrantMb` reports whichever figure (granted vs. requested) is
-    relevant so the client always has one number to show. A flat `TOP N
-    ORDER BY cpu_time` would miss a session that's IO- or memory-heavy but
-    not CPU-heavy — it would never even be fetched, so no client-side sort
-    could surface it. Instead the query ranks the same row set four ways
-    with `ROW_NUMBER()` (CPU, physical reads, writes, memory) and keeps the
-    union of each ranking's top rows (`rn_cpu <= 50 OR rn_reads <= 15 OR
-    rn_writes <= 15 OR rn_mem <= 10` — CPU ranked deepest since it's also
-    the metric used to just browse "what's running"), so whichever column
-    `ConsumersPanel.tsx` is sorted by client-side, the genuine top
-    consumers for that resource are actually in the payload. This can
-    return more than 50 rows now (up to the sum of the thresholds, though
-    real overlap between "CPU-heavy" and "IO-heavy" keeps it well under
-    that in practice) — `dm_exec_requests` only has rows for sessions with
-    something actively running, so this stays cheap despite no longer
-    being a flat `TOP 20`.
+    relevant so the client always has one number to show. **No `TOP N` /
+    row cap at all** — earlier versions used a flat `TOP N ORDER BY
+    cpu_time`, then a `ROW_NUMBER()`-ranked union of per-metric top-N's,
+    but both were solving a problem that doesn't actually need solving:
+    `sys.dm_exec_requests` only has a row per request that's *currently
+    executing* (idle/sleeping sessions never appear here), so it's already
+    bounded by real concurrent work — in practice capped by CPU core count
+    / `max worker threads`, not by total connections. Returning the whole
+    result lets `ConsumersPanel.tsx` sort/filter client-side with zero risk
+    of a genuine top IO or memory consumer being missing because it didn't
+    make some server-side cutoff.
   - `tempdb.ts` — the used-space breakdown reads `tempdb.sys.dm_db_file_
     space_usage` (user/internal objects + version store), not `FILEPROPERTY`.
     `FILEPROPERTY(name, 'SpaceUsed')` evaluates against whatever database
@@ -468,8 +464,8 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
 - `components/ConsumersPanel.tsx` — client-side sort (click a column header
   to sort by it, click again to reverse; nulls always sort last regardless
   of direction) over whatever `consumers` rows the server sent — this is
-  free re-ordering, not a new query, since `consumers.ts` already returns
-  the union of top-by-CPU/reads/writes/memory (see `sql/*.ts` above). Also
+  free re-ordering, not a new query, since `consumers.ts` returns every
+  active request uncapped (see `sql/*.ts` above). Also
   has a client-only "Hide 'sa' session" checkbox (`loginName.toLowerCase()
   === "sa"`, case-insensitive) for filtering out a maintenance/monitoring
   login that clutters the list; defaults **on** (`sa` is almost always
