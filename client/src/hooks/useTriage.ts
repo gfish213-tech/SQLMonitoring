@@ -4,6 +4,23 @@ import type { DashboardTab, TriageData } from "../types";
 
 const AUTO_REFRESH_INTERVAL_MS = 20000;
 
+// Must match the panel labels dashboard.ts's /triage route emits progress events for, and the
+// exact same quick/full split as its two Promise.all batches (see the comment there) - this is
+// only used to seed the initial "pending" list before any progress events arrive, so a DBA sees
+// the full checklist immediately rather than have items pop in one at a time as they start.
+const QUICK_PANELS = ["overview", "blocking", "longOps", "agentJobs", "waits", "pressure", "logSpace"];
+const FULL_ONLY_PANELS = ["consumers", "tempdb", "vlfCounts", "ioLatency", "autogrowth", "deadlocks", "volumeSpace", "indexStats"];
+const ALL_PANELS = [...QUICK_PANELS, ...FULL_ONLY_PANELS];
+
+// One entry per check the server tracks for a given refresh - see dashboard.ts's /triage route.
+// Shown in the refresh bar so a slow Full Refresh names which specific check it's waiting on
+// instead of one opaque spinner for the whole multi-second batch.
+export interface RefreshCheckStatus {
+  panel: string;
+  status: "pending" | "done" | "error";
+  ms: number | null;
+}
+
 export function useTriage() {
   const [data, setData] = useState<TriageData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -13,11 +30,21 @@ export function useTriage() {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [panelLoading, setPanelLoading] = useState<DashboardTab | null>(null);
   const [panelUpdatedAt, setPanelUpdatedAt] = useState<Partial<Record<DashboardTab, Date>>>({});
+  const [refreshChecks, setRefreshChecks] = useState<RefreshCheckStatus[]>([]);
+  const [refreshStartedAt, setRefreshStartedAt] = useState<number | null>(null);
 
   const fetchMode = useCallback(async (mode: "quick" | "full") => {
     setLoading(true);
+    setRefreshStartedAt(Date.now());
+    setRefreshChecks(
+      (mode === "quick" ? QUICK_PANELS : ALL_PANELS).map((panel) => ({ panel, status: "pending", ms: null }))
+    );
     try {
-      const result = await api.triage(mode);
+      const result = await api.triage(mode, (event) => {
+        setRefreshChecks((prev) =>
+          prev.map((c) => (c.panel === event.panel ? { panel: c.panel, status: event.ok ? "done" : "error", ms: event.ms } : c))
+        );
+      });
       setData(result);
       setLastMode(mode);
       setError(null);
@@ -78,5 +105,7 @@ export function useTriage() {
     refreshPanel,
     panelLoading,
     panelUpdatedAt,
+    refreshChecks,
+    refreshStartedAt,
   };
 }

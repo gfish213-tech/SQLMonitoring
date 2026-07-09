@@ -3,6 +3,18 @@
 ## 1.5.0 — 2026-07-08
 
 ### Added
+- **Live per-check progress during Quick/Full Refresh**: a Full Refresh
+  used to just show "Refreshing..." for however many seconds the whole
+  batch took, with no way to tell whether it was almost done or stuck on
+  one specific slow check. `GET /api/triage` now streams a progress line
+  the instant each individual query finishes (not when its whole batch
+  does), and the refresh bar shows a live checklist — e.g. "13/15 checks
+  done" with pill chips per check (Overview ✓ 0.3s, Blocking ✓ 0.1s,
+  Index Stats … 5.6s) — so a still-climbing elapsed time on one chip
+  while everything else has a checkmark is a direct answer to "which
+  part is taking so long," instead of a guess. Doesn't change what runs
+  when or how many queries run concurrently — same two-phase batch
+  structure as before, just observed from outside.
 - **Wait type tooltips**: raw wait type names like `PAGEIOLATCH_SH` or
   `LCK_M_X` now show a plain-English explanation on hover (dotted
   underline, native tooltip) wherever they appear — Waits, Top Resource

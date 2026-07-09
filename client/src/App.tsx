@@ -18,6 +18,7 @@ import { AutogrowthPanel } from "./components/AutogrowthPanel";
 import { DeadlocksPanel } from "./components/DeadlocksPanel";
 import { IndexStatsPanel } from "./components/IndexStatsPanel";
 import { NotCheckedPanel } from "./components/NotCheckedPanel";
+import { RefreshProgress } from "./components/RefreshProgress";
 import { useTriage } from "./hooks/useTriage";
 import { buildSummaryText } from "./summary";
 import type { ConnectionMeta, DashboardTab, TriageData } from "./types";
@@ -111,6 +112,8 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
     refreshPanel,
     panelLoading,
     panelUpdatedAt,
+    refreshChecks,
+    refreshStartedAt,
   } = useTriage();
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
@@ -163,6 +166,8 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
             </span>
           )}
         </div>
+
+        {loading && <RefreshProgress checks={refreshChecks} startedAt={refreshStartedAt} />}
 
         {data && (
           <nav className="tab-bar" aria-label="Dashboard sections">

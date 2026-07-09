@@ -39,6 +39,25 @@ function labeled<T>(panel: string, promise: Promise<T>): Promise<T> {
   });
 }
 
+// Same wrapping as labeled(), but also streams a progress line the instant this one query
+// resolves — independent of when the rest of its Promise.all batch finishes — so the client can
+// show which specific check a slow refresh is stuck on instead of one opaque spinner for the
+// whole multi-second batch. Doesn't change what runs when or how many queries run concurrently;
+// it only reports on the exact same Promise.all structure that was already there.
+function tracked<T>(emit: (event: Record<string, unknown>) => void, panel: string, promise: Promise<T>): Promise<T> {
+  const startedAt = Date.now();
+  return promise.then(
+    (value) => {
+      emit({ type: "progress", panel, ok: true, ms: Date.now() - startedAt });
+      return value;
+    },
+    (err) => {
+      emit({ type: "progress", panel, ok: false, ms: Date.now() - startedAt });
+      throw new Error(`[${panel}] ${(err as Error).message}`);
+    }
+  );
+}
+
 // "quick" runs only small, single-pass queries against bounded system DMVs (session/request
 // counts, wait lists, msdb job tables, DBCC SQLPERF) — the checks a DBA wants first, and cheap
 // enough to run against a server that's already struggling. "full" adds everything with a
@@ -48,55 +67,86 @@ function labeled<T>(panel: string, promise: Promise<T>): Promise<T> {
 // index-usage row on the server (Index Stats) — exactly the kind of extra load this tool must
 // not add uninvited. Defaults to "full" for direct API callers; the client always passes an
 // explicit mode.
+// Streamed as newline-delimited JSON rather than one final res.json(): a Full Refresh can take
+// several seconds (Consumers, IO Latency, Autogrowth, Index Stats all have real scan/IO cost),
+// and a single opaque "Refreshing..." spinner for the whole thing gives a DBA no way to tell
+// whether it's almost done or stuck on one specific slow check. Each `tracked()` query writes its
+// own {type:"progress"} line the moment it personally finishes; a final {type:"done", data:...}
+// line carries the same combined payload this endpoint used to return in one shot. The client
+// (useTriage.ts) reads this as a stream and shows live per-check status; older/simpler callers can
+// still just read the whole response and parse out the last line.
 router.get("/triage", async (req, res) => {
   const quick = req.query.mode === "quick";
 
+  res.setHeader("Content-Type", "application/x-ndjson");
+  res.flushHeaders();
+  // Promise.all rejects as soon as the first query fails, but the other queries in that same
+  // batch are still genuinely running server-side (rejecting the combined promise doesn't cancel
+  // them) - they'll each still call emit() when they eventually settle, which without this guard
+  // would try to res.write() on a response the catch block below already res.end()'d, throwing.
+  let ended = false;
+  function emit(event: Record<string, unknown>) {
+    if (ended) return;
+    res.write(JSON.stringify(event) + "\n");
+  }
+  function finish() {
+    if (ended) return;
+    ended = true;
+    res.end();
+  }
+
   try {
     const [overview, blocking, longOps, agentJobs, waits, pressure, logSpace] = await Promise.all([
-      labeled("overview", getOverview()),
-      labeled("blocking", getBlockingChains()),
-      labeled("longOps", getLongRunningOps()),
-      labeled("agentJobs", getRunningAgentJobs()),
-      labeled("waits", getCurrentWaits()),
-      labeled("pressure", getPressureStats()),
-      labeled("logSpace", getLogSpaceUsage()),
+      tracked(emit, "overview", getOverview()),
+      tracked(emit, "blocking", getBlockingChains()),
+      tracked(emit, "longOps", getLongRunningOps()),
+      tracked(emit, "agentJobs", getRunningAgentJobs()),
+      tracked(emit, "waits", getCurrentWaits()),
+      tracked(emit, "pressure", getPressureStats()),
+      tracked(emit, "logSpace", getLogSpaceUsage()),
     ]);
 
     if (quick) {
-      res.json({ overview, blocking, longOps, agentJobs, waits, pressure, logSpace });
+      emit({ type: "done", data: { overview, blocking, longOps, agentJobs, waits, pressure, logSpace } });
+      finish();
       return;
     }
 
     const [consumers, tempdb, vlfCounts, ioLatency, autogrowth, deadlocks, volumeSpace, indexStats] = await Promise.all([
-      labeled("consumers", getCurrentConsumers()),
-      labeled("tempdb", getTempdbStats()),
-      labeled("vlfCounts", getVlfCounts()),
-      labeled("ioLatency", getIoLatency()),
-      labeled("autogrowth", getRecentAutogrowthEvents()),
-      labeled("deadlocks", getRecentDeadlocks()),
-      labeled("volumeSpace", getVolumeSpace()),
-      labeled("indexStats", getIndexStats()),
+      tracked(emit, "consumers", getCurrentConsumers()),
+      tracked(emit, "tempdb", getTempdbStats()),
+      tracked(emit, "vlfCounts", getVlfCounts()),
+      tracked(emit, "ioLatency", getIoLatency()),
+      tracked(emit, "autogrowth", getRecentAutogrowthEvents()),
+      tracked(emit, "deadlocks", getRecentDeadlocks()),
+      tracked(emit, "volumeSpace", getVolumeSpace()),
+      tracked(emit, "indexStats", getIndexStats()),
     ]);
 
-    res.json({
-      overview,
-      blocking,
-      longOps,
-      agentJobs,
-      waits,
-      pressure,
-      logSpace,
-      consumers,
-      tempdb,
-      vlfCounts,
-      ioLatency,
-      autogrowth,
-      deadlocks,
-      volumeSpace,
-      indexStats,
+    emit({
+      type: "done",
+      data: {
+        overview,
+        blocking,
+        longOps,
+        agentJobs,
+        waits,
+        pressure,
+        logSpace,
+        consumers,
+        tempdb,
+        vlfCounts,
+        ioLatency,
+        autogrowth,
+        deadlocks,
+        volumeSpace,
+        indexStats,
+      },
     });
+    finish();
   } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
+    emit({ type: "error", message: (err as Error).message });
+    finish();
   }
 });
 

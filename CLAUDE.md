@@ -201,6 +201,42 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
 `App.tsx`; a new tab needs an entry in all three or its refresh button
 404s.
 
+**Live per-check progress**: `GET /api/triage` streams newline-delimited
+JSON rather than returning one `res.json()` at the end — a Full Refresh
+can take several seconds across many individually-costly checks
+(Consumers, IO Latency, Autogrowth, Index Stats especially), and a single
+opaque "Refreshing..." spinner can't tell a DBA whether it's almost done
+or stuck on one specific slow check. Each query is wrapped in
+`tracked()` (`dashboard.ts`), which writes a `{type:"progress", panel,
+ok, ms}` line the instant that one query personally finishes —
+independent of when the rest of its `Promise.all` phase finishes — and a
+final `{type:"done", data:...}` line carries the same combined payload
+this endpoint used to return in one shot (`{type:"error", message}` on
+failure). This doesn't change what runs when or how many queries run
+concurrently — it's the exact same two-phase `Promise.all` structure as
+before, just observed from outside. `finish()`/the `ended` flag guard
+against a real failure mode this introduced: `Promise.all` rejects as
+soon as the *first* query in a batch fails, but the other queries in
+that batch are still genuinely running server-side (rejecting the
+combined promise doesn't cancel them) — without the guard, one of them
+finishing after the `catch` block already `res.end()`'d would throw
+trying to `res.write()` on a closed stream. `client/src/api.ts`'s
+`triageStream()` reads the response via `res.body.getReader()`, buffering
+until each `\n` and parsing one JSON object per line; `useTriage.ts`
+seeds a `refreshChecks` list of pending panels for the current mode
+before the first byte arrives (so the full checklist appears immediately,
+not one item at a time as checks start) and flips each to done/error as
+its progress line arrives. `RefreshProgress.tsx` renders these as small
+pill chips under the refresh bar with a client-side 200ms ticker so a
+still-pending chip's elapsed time visibly climbs — this is what actually
+answers "which part is slow": watch the numbers, the one still climbing
+after everything else has a checkmark is the bottleneck. Quick and Full
+Refresh share this exact mechanism (same endpoint, mode-scoped panel
+list); a new query added to either `Promise.all` batch needs its panel
+key added to `QUICK_PANELS`/`FULL_ONLY_PANELS` in `useTriage.ts` and to
+`PANEL_LABELS` in `RefreshProgress.tsx`, or it'll silently never appear
+in the checklist.
+
 ## Architecture
 
 ### Server (`server/src`)
@@ -414,10 +450,16 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
 
 ### Client (`client/src`)
 
-- `api.ts` — the single fetch client; every server call goes through the
-  `request()` wrapper, which throws using the server's `{ error }` JSON body
-  on non-2xx responses (and falls back to a generic message if `error` isn't
-  a string, so a server-side bug can't surface as `[object Object]` again).
+- `api.ts` — the single fetch client; every server call except `triage()`
+  goes through the `request()` wrapper, which throws using the server's
+  `{ error }` JSON body on non-2xx responses (and falls back to a generic
+  message if `error` isn't a string, so a server-side bug can't surface as
+  `[object Object]` again). `triage()` calls `triageStream()` instead —
+  see "Live per-check progress" above — which handles the non-streaming
+  error case (a non-2xx response, e.g. 409 "not connected," never reaches
+  the stream at all since `requireConnection`'s middleware responds before
+  the route handler runs) the same way `request()` does, then reads the
+  200 case as a newline-delimited stream.
 - `types.ts` — manually mirrors the server's response shapes (there's no
   shared types package between `client` and `server`); update both sides
   together when changing an API response shape.
