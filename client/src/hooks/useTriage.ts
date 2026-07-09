@@ -8,8 +8,12 @@ const AUTO_REFRESH_INTERVAL_MS = 20000;
 // exact same quick/full split as its two Promise.all batches (see the comment there) - this is
 // only used to seed the initial "pending" list before any progress events arrive, so a DBA sees
 // the full checklist immediately rather than have items pop in one at a time as they start.
+// Index Stats is deliberately not here at all - it's excluded from both Quick and Full Refresh
+// (see dashboard.ts's /triage route) since it was the one check slow enough on a many-database
+// server to make a DBA wait on a whole Full Refresh just to see panels that were long since
+// ready; it's only ever fetched via the Indexes tab's own "↻ Refresh Indexes" button.
 const QUICK_PANELS = ["overview", "blocking", "longOps", "agentJobs", "waits", "pressure", "logSpace"];
-const FULL_ONLY_PANELS = ["consumers", "tempdb", "vlfCounts", "ioLatency", "autogrowth", "deadlocks", "volumeSpace", "indexStats"];
+const FULL_ONLY_PANELS = ["consumers", "tempdb", "vlfCounts", "ioLatency", "autogrowth", "deadlocks", "volumeSpace"];
 const ALL_PANELS = [...QUICK_PANELS, ...FULL_ONLY_PANELS];
 
 // One entry per check the server tracks for a given refresh - see dashboard.ts's /triage route.

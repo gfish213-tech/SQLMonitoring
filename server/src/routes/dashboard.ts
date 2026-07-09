@@ -60,13 +60,17 @@ function tracked<T>(emit: (event: Record<string, unknown>) => void, panel: strin
 
 // "quick" runs only small, single-pass queries against bounded system DMVs (session/request
 // counts, wait lists, msdb job tables, DBCC SQLPERF) — the checks a DBA wants first, and cheap
-// enough to run against a server that's already struggling. "full" adds everything with a
+// enough to run against a server that's already struggling. "full" adds everything else with a
 // larger scan surface: per-row correlated subqueries (Consumers), full per-file DMV scans done
 // twice (IO Latency), real OS-level syscalls per file (Volume Space), XML shredding (Deadlocks),
-// a trace file read off disk (Autogrowth), and a per-row scalar function call across every
-// index-usage row on the server (Index Stats) — exactly the kind of extra load this tool must
-// not add uninvited. Defaults to "full" for direct API callers; the client always passes an
-// explicit mode.
+// a trace file read off disk (Autogrowth) — exactly the kind of extra load this tool must not add
+// uninvited, but still bounded to a few seconds even on a large server. Index Stats is
+// deliberately excluded from both: its per-row scalar function call across every index-usage row
+// on the server (see indexStats.ts) was, in practice, the one check slow enough on a
+// many-database server to make a DBA wait on a whole Full Refresh just to see panels that were
+// long since ready — it's only ever fetched via its own tab's "↻ Refresh Indexes" button
+// (PANEL_FETCHERS.indexes below), never automatically. Defaults to "full" for direct API callers;
+// the client always passes an explicit mode.
 // Streamed as newline-delimited JSON rather than one final res.json(): a Full Refresh can take
 // several seconds (Consumers, IO Latency, Autogrowth, Index Stats all have real scan/IO cost),
 // and a single opaque "Refreshing..." spinner for the whole thing gives a DBA no way to tell
@@ -112,7 +116,7 @@ router.get("/triage", async (req, res) => {
       return;
     }
 
-    const [consumers, tempdb, vlfCounts, ioLatency, autogrowth, deadlocks, volumeSpace, indexStats] = await Promise.all([
+    const [consumers, tempdb, vlfCounts, ioLatency, autogrowth, deadlocks, volumeSpace] = await Promise.all([
       tracked(emit, "consumers", getCurrentConsumers()),
       tracked(emit, "tempdb", getTempdbStats()),
       tracked(emit, "vlfCounts", getVlfCounts()),
@@ -120,7 +124,6 @@ router.get("/triage", async (req, res) => {
       tracked(emit, "autogrowth", getRecentAutogrowthEvents()),
       tracked(emit, "deadlocks", getRecentDeadlocks()),
       tracked(emit, "volumeSpace", getVolumeSpace()),
-      tracked(emit, "indexStats", getIndexStats()),
     ]);
 
     emit({
@@ -140,7 +143,6 @@ router.get("/triage", async (req, res) => {
         autogrowth,
         deadlocks,
         volumeSpace,
-        indexStats,
       },
     });
     finish();

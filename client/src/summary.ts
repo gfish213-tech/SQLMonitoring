@@ -7,6 +7,10 @@ function field(label: string, value: string | number | null | undefined): string
 }
 
 const NOT_CHECKED = "Not checked in this quick refresh - run Full Refresh for this section.";
+// Index Stats is excluded from both Quick and Full Refresh (see dashboard.ts) - only its own
+// tab's "Refresh Indexes" button populates it, so the generic NOT_CHECKED text above would be
+// wrong here, not just imprecise.
+const INDEX_STATS_NOT_CHECKED = "Not checked automatically - use the Indexes tab's own Refresh button for this section.";
 
 // Query text and long lists (deadlock XML especially) can otherwise balloon this into thousands
 // of lines once Consumers has no server-side row cap - the point of this text is diagnostic
@@ -279,7 +283,7 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
 
   lines.push("## Top Tables by Scans (since last restart; index_id shown instead of index name)");
   if (data.indexStats === undefined) {
-    lines.push(NOT_CHECKED);
+    lines.push(INDEX_STATS_NOT_CHECKED);
   } else if (data.indexStats.topScannedTables.length === 0) {
     lines.push("No table has significant scan activity.");
   } else {
@@ -291,7 +295,7 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
 
   lines.push("## Unused Indexes (since last restart; written to but never read)");
   if (data.indexStats === undefined) {
-    lines.push(NOT_CHECKED);
+    lines.push(INDEX_STATS_NOT_CHECKED);
   } else if (data.indexStats.unusedIndexes.length === 0) {
     lines.push("No index has write activity with zero reads.");
   } else {

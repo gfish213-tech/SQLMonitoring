@@ -166,21 +166,32 @@ auto-refresh — all three only ever request quick) runs just the small,
 single-pass checks (bounded system DMVs, no per-row scans, no XML, no
 disk/OS syscalls): overview, blocking, longOps, agentJobs, waits,
 pressure, logSpace. `?mode=full` (or the query param omitted — the
-"Full Refresh" button explicitly requests it) adds everything with a
+"Full Refresh" button explicitly requests it) adds everything else with a
 larger scan surface: consumers, tempdb, vlfCounts, ioLatency, autogrowth,
-deadlocks, volumeSpace, indexStats. `dashboard.ts`'s `router.get("/triage")`
+deadlocks, volumeSpace. `dashboard.ts`'s `router.get("/triage")`
 runs the quick batch first (always), then conditionally the second batch
 if not `mode=quick`; see `sql/*.ts` below for which specific DMV
-characteristics put a check in which bucket. The full-only fields are
-`undefined` (not present in the JSON at all) on a quick response —
-`TriageData` marks them optional in `types.ts` for exactly this reason.
-Every component reading a full-only field must treat `undefined` ("not
-checked yet") as a third state distinct from an empty array ("checked,
-nothing found") — see `NotCheckedPanel.tsx` and the `hasData: boolean |
-undefined` tri-state on `App.tsx`'s tab dots (red/dim-gray/none). Adding a
-new full-only check needs: the field marked optional in `types.ts`, a
-guard in `diagnosis.ts` (`data.field ?? []` or an `if (data.field)`), a
-"not checked" branch in `summary.ts`, and the tab wired with the
+characteristics put a check in which bucket. **Index Stats is excluded
+from both** — unlike the other full-only checks (bounded to a few seconds
+even on a large server), its per-row scalar function call across every
+index-usage row (see `indexStats.ts`) was, in practice, the one check
+slow enough on a many-database server to make a DBA wait on a whole Full
+Refresh just to see panels that were long since ready. It's only ever
+fetched via the Indexes tab's own "↻ Refresh Indexes" button (per-tab
+refresh, below) — never automatically by Quick or Full Refresh. The
+full-only fields (including `indexStats`, always) are `undefined` (not
+present in the JSON at all) on a quick response — `TriageData` marks them
+optional in `types.ts` for exactly this reason. Every component reading a
+full-only field must treat `undefined` ("not checked yet") as a third
+state distinct from an empty array ("checked, nothing found") — see
+`NotCheckedPanel.tsx` and the `hasData: boolean | undefined` tri-state on
+`App.tsx`'s tab dots (red/dim-gray/none). `NotCheckedPanel`'s optional
+`hint` prop overrides its default "click Full Refresh" wording — used
+only for Indexes, since Full Refresh never populates it and that default
+wording would be actively wrong there, not just generic. Adding a new
+full-only check needs: the field marked optional in `types.ts`, a guard
+in `diagnosis.ts` (`data.field ?? []` or an `if (data.field)`), a "not
+checked" branch in `summary.ts`, and the tab wired with the
 `hasData: undefined` / `<NotCheckedPanel>` pattern in `buildTabs()` —
 skipping any one of these will crash or silently misreport on a
 quick-only snapshot.
@@ -204,9 +215,11 @@ must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
 **Live per-check progress**: `GET /api/triage` streams newline-delimited
 JSON rather than returning one `res.json()` at the end — a Full Refresh
 can take several seconds across many individually-costly checks
-(Consumers, IO Latency, Autogrowth, Index Stats especially), and a single
-opaque "Refreshing..." spinner can't tell a DBA whether it's almost done
-or stuck on one specific slow check. Each query is wrapped in
+(Consumers, IO Latency, and Autogrowth especially — Index Stats would be
+the worst offender but is excluded from Full Refresh entirely, see "Two
+refresh modes" above), and a single opaque "Refreshing..." spinner can't
+tell a DBA whether it's almost done or stuck on one specific slow check.
+Each query is wrapped in
 `tracked()` (`dashboard.ts`), which writes a `{type:"progress", panel,
 ok, ms}` line the instant that one query personally finishes —
 independent of when the rest of its `Promise.all` phase finishes — and a
@@ -420,9 +433,13 @@ in the checklist.
     calling it in the `WHERE` clause against every raw DMV row (which timed
     out in production on a server with many databases/objects before this
     was fixed). The whole function is also wrapped in `try`/`catch` →
-    empty results, same reasoning as `autogrowth.ts`/`deadlocks.ts` below —
-    a slow index scan on an unusually large server shouldn't take down the
-    rest of a Full Refresh.
+    empty results, same reasoning as `autogrowth.ts`/`deadlocks.ts` below.
+    Even filtered this way, this remains the single slowest check in the
+    app on a server with many databases/objects — which is exactly why
+    it's excluded from both Quick and Full Refresh entirely (see "Two
+    refresh modes" above) rather than just fail-soft wrapped like the
+    other full-only checks; it's only ever run via the Indexes tab's own
+    "↻ Refresh Indexes" button.
   - `autogrowth.ts`, `deadlocks.ts` — read from the default trace / the
     `system_health` extended-events session respectively, both of which are
     on by default but can be disabled by policy; both catch and return an
@@ -593,12 +610,14 @@ in the checklist.
   carries a `hasData: boolean | undefined` tri-state (not a plain flag) that
   renders a red dot / no dot / dim gray dot on its `.tab-bar` button — `true`
   ("checked, found something"), `false` ("checked, clean"), or `undefined`
-  ("not checked this refresh" — full-only tabs on a quick response), so a DBA
-  can see which tabs have something to look at, which are already ruled out,
-  and which simply haven't been checked yet, without clicking through all of
-  them. Full-only tabs (Consumers, IO Latency, Autogrowth, Deadlocks,
-  Indexes) and full-only sections within the Overview tab (TempDB, Disk
-  Volume Space) render `NotCheckedPanel.tsx` — a dashed-border placeholder —
+  ("not checked this refresh" — full-only tabs on a quick response, or
+  Indexes on *any* response since it's excluded from both refresh modes,
+  see "Two refresh modes" above), so a DBA can see which tabs have
+  something to look at, which are already ruled out, and which simply
+  haven't been checked yet, without clicking through all of them.
+  Full-only tabs (Consumers, IO Latency, Autogrowth, Deadlocks, Indexes)
+  and full-only sections within the Overview tab (TempDB, Disk Volume
+  Space) render `NotCheckedPanel.tsx` — a dashed-border placeholder —
   instead of their normal panel when `hasData` is `undefined`, so "not
   checked" never gets misread as "checked, nothing found." This tri-state is
   what replaced the old sorted-by-emptiness 2-column layout when panels

@@ -8,13 +8,25 @@
   batch took, with no way to tell whether it was almost done or stuck on
   one specific slow check. `GET /api/triage` now streams a progress line
   the instant each individual query finishes (not when its whole batch
-  does), and the refresh bar shows a live checklist — e.g. "13/15 checks
+  does), and the refresh bar shows a live checklist — e.g. "12/14 checks
   done" with pill chips per check (Overview ✓ 0.3s, Blocking ✓ 0.1s,
-  Index Stats … 5.6s) — so a still-climbing elapsed time on one chip
+  IO Latency … 1.2s) — so a still-climbing elapsed time on one chip
   while everything else has a checkmark is a direct answer to "which
   part is taking so long," instead of a guess. Doesn't change what runs
   when or how many queries run concurrently — same two-phase batch
   structure as before, just observed from outside.
+- **Index Stats excluded from Quick and Full Refresh entirely**: watching
+  the new live progress checklist above made it obvious this was, in
+  practice, the one check slow enough on a many-database server to make
+  a Full Refresh wait on it even after every other panel was long since
+  ready — its per-row scalar function call across every index-usage row
+  on the server (see `indexStats.ts`) doesn't scale down the way the
+  other full-only checks do. It's now only ever fetched via the Indexes
+  tab's own "↻ Refresh Indexes" button, never automatically; the tab
+  shows a specific "Not checked automatically — click Refresh Indexes"
+  hint instead of the generic "click Full Refresh" wording every other
+  full-only tab shows, since Full Refresh genuinely never populates this
+  one.
 - **Wait type tooltips**: raw wait type names like `PAGEIOLATCH_SH` or
   `LCK_M_X` now show a plain-English explanation on hover (dotted
   underline, native tooltip) wherever they appear — Waits, Top Resource

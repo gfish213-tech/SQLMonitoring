@@ -93,7 +93,21 @@ function buildTabs(data: TriageData): { key: DashboardTab; label: string; hasDat
       key: "indexes",
       label: "Indexes",
       hasData: data.indexStats ? data.indexStats.topScannedTables.length > 0 || data.indexStats.unusedIndexes.length > 0 : undefined,
-      node: data.indexStats ? <IndexStatsPanel indexStats={data.indexStats} /> : <NotCheckedPanel label="Index Stats" />,
+      // Unlike every other full-only tab, Full Refresh never populates this one either (see
+      // dashboard.ts) - the default "click Full Refresh" hint would be wrong here, not just generic.
+      node: data.indexStats ? (
+        <IndexStatsPanel indexStats={data.indexStats} />
+      ) : (
+        <NotCheckedPanel
+          label="Index Stats"
+          hint={
+            <>
+              Not checked automatically — click <strong>↻ Refresh Indexes</strong> above to check this (can be slow on a
+              server with many databases).
+            </>
+          }
+        />
+      ),
     },
   ];
 }
@@ -149,7 +163,11 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
           <button className="primary" onClick={refresh} disabled={loading} title="Small, single-pass queries only — safe to run often, even on a struggling server.">
             {loading ? "Refreshing..." : "Quick Refresh"}
           </button>
-          <button onClick={fullRefresh} disabled={loading} title="Adds heavier checks: Consumers, TempDB, VLF counts, IO Latency, Autogrowth, Deadlocks, Volume Space, Indexes.">
+          <button
+            onClick={fullRefresh}
+            disabled={loading}
+            title="Adds heavier checks: Consumers, TempDB, VLF counts, IO Latency, Autogrowth, Deadlocks, Volume Space. Indexes isn't included — it's slow on servers with many databases; refresh it from its own tab."
+          >
             Full Refresh
           </button>
           <label className="auto-refresh-toggle">
