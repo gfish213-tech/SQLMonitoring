@@ -142,9 +142,7 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
   lines.push("");
 
   lines.push("## Top Resource Consumers (Right Now) (top sessions by CPU, disk IO, or memory)");
-  if (data.consumers === undefined) {
-    lines.push(NOT_CHECKED);
-  } else if (data.consumers.length === 0) {
+  if (data.consumers.length === 0) {
     lines.push("No active requests other than this connection.");
   } else {
     const shown = data.consumers.slice(0, MAX_CONSUMERS_SHOWN);

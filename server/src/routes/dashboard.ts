@@ -60,10 +60,15 @@ function tracked<T>(emit: (event: Record<string, unknown>) => void, panel: strin
 
 // "quick" runs only small, single-pass queries against bounded system DMVs (session/request
 // counts, wait lists, msdb job tables, DBCC SQLPERF) — the checks a DBA wants first, and cheap
-// enough to run against a server that's already struggling. "full" adds everything else with a
-// larger scan surface: per-row correlated subqueries (Consumers), full per-file DMV scans done
-// twice (IO Latency), real OS-level syscalls per file (Volume Space), XML shredding (Deadlocks),
-// a trace file read off disk (Autogrowth) — exactly the kind of extra load this tool must not add
+// enough to run against a server that's already struggling. Consumers lives here too, not in
+// "full": despite the OUTER APPLYs to per-session tempdb usage and memory grants, it's still
+// keyed off sys.dm_exec_requests, which only has a row per *currently executing* request — the
+// same naturally-bounded-by-active-work shape as blocking.ts/currentWaits.ts, not a real scan —
+// and "who's using the CPU/memory/IO right now" is a core answer to "why is the server slow,"
+// exactly what a quick check should be able to say without needing the heavier checks below.
+// "full" adds everything else with a larger scan surface: full per-file DMV scans done twice (IO
+// Latency), real OS-level syscalls per file (Volume Space), XML shredding (Deadlocks), a trace
+// file read off disk (Autogrowth) — exactly the kind of extra load this tool must not add
 // uninvited, but still bounded to a few seconds even on a large server. Index Stats is
 // deliberately excluded from both: its per-row scalar function call across every index-usage row
 // on the server (see indexStats.ts) was, in practice, the one check slow enough on a
@@ -72,9 +77,9 @@ function tracked<T>(emit: (event: Record<string, unknown>) => void, panel: strin
 // (PANEL_FETCHERS.indexes below), never automatically. Defaults to "full" for direct API callers;
 // the client always passes an explicit mode.
 // Streamed as newline-delimited JSON rather than one final res.json(): a Full Refresh can take
-// several seconds (Consumers, IO Latency, Autogrowth, Index Stats all have real scan/IO cost),
-// and a single opaque "Refreshing..." spinner for the whole thing gives a DBA no way to tell
-// whether it's almost done or stuck on one specific slow check. Each `tracked()` query writes its
+// several seconds (IO Latency and Autogrowth especially have real scan/IO cost), and a single
+// opaque "Refreshing..." spinner for the whole thing gives a DBA no way to tell whether it's
+// almost done or stuck on one specific slow check. Each `tracked()` query writes its
 // own {type:"progress"} line the moment it personally finishes; a final {type:"done", data:...}
 // line carries the same combined payload this endpoint used to return in one shot. The client
 // (useTriage.ts) reads this as a stream and shows live per-check status; older/simpler callers can
@@ -100,7 +105,7 @@ router.get("/triage", async (req, res) => {
   }
 
   try {
-    const [overview, blocking, longOps, agentJobs, waits, pressure, logSpace] = await Promise.all([
+    const [overview, blocking, longOps, agentJobs, waits, pressure, logSpace, consumers] = await Promise.all([
       tracked(emit, "overview", getOverview()),
       tracked(emit, "blocking", getBlockingChains()),
       tracked(emit, "longOps", getLongRunningOps()),
@@ -108,16 +113,16 @@ router.get("/triage", async (req, res) => {
       tracked(emit, "waits", getCurrentWaits()),
       tracked(emit, "pressure", getPressureStats()),
       tracked(emit, "logSpace", getLogSpaceUsage()),
+      tracked(emit, "consumers", getCurrentConsumers()),
     ]);
 
     if (quick) {
-      emit({ type: "done", data: { overview, blocking, longOps, agentJobs, waits, pressure, logSpace } });
+      emit({ type: "done", data: { overview, blocking, longOps, agentJobs, waits, pressure, logSpace, consumers } });
       finish();
       return;
     }
 
-    const [consumers, tempdb, vlfCounts, ioLatency, autogrowth, deadlocks, volumeSpace] = await Promise.all([
-      tracked(emit, "consumers", getCurrentConsumers()),
+    const [tempdb, vlfCounts, ioLatency, autogrowth, deadlocks, volumeSpace] = await Promise.all([
       tracked(emit, "tempdb", getTempdbStats()),
       tracked(emit, "vlfCounts", getVlfCounts()),
       tracked(emit, "ioLatency", getIoLatency()),

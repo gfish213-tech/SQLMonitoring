@@ -3,6 +3,16 @@
 ## 1.5.0 — 2026-07-08
 
 ### Added
+- **Top Resource Consumers moved into Quick Refresh**: it used to be
+  full-only, so seeing who's driving CPU/memory/IO right now meant
+  waiting on the heavier checks (IO Latency, Autogrowth, Volume Space)
+  too. Its query is keyed off `sys.dm_exec_requests`, which only has a
+  row per currently-executing request — the same naturally-bounded shape
+  as Blocking and Waits (both already quick-tier), not a real scan — so
+  it belongs with the fast checks. Quick Refresh now answers "who's
+  driving the server slow" directly, without needing a Full Refresh.
+  Every "Consumers tab (needs a Full Refresh to populate)" caveat in the
+  diagnosis advice text is gone too, since it's no longer true.
 - **Live per-check progress during Quick/Full Refresh**: a Full Refresh
   used to just show "Refreshing..." for however many seconds the whole
   batch took, with no way to tell whether it was almost done or stuck on

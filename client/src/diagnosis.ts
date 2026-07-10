@@ -84,7 +84,7 @@ export function diagnose(data: TriageData): Finding[] {
       detail:
         "Over the sampled second, a large share of wait time was signal wait (waiting for a CPU to free up, not for a resource) — the server is CPU-bound right now.",
       advice:
-        "Open the Consumers tab (it needs a Full Refresh to populate) to find who's burning the CPU — one runaway query is far more common than genuine undersizing. Look for a session with CPU time far above the rest; its query text tells you whether to kill it, or whether it's a bad plan (a scan where a seek should be) worth fixing properly.",
+        "Open the Consumers tab to find who's burning the CPU — one runaway query is far more common than genuine undersizing. Look for a session with CPU time far above the rest; its query text tells you whether to kill it, or whether it's a bad plan (a scan where a seek should be) worth fixing properly.",
     });
   }
 
@@ -95,7 +95,7 @@ export function diagnose(data: TriageData): Finding[] {
       title: `Low page life expectancy: ${data.pressure.pageLifeExpectancy}s`,
       detail: "Pages are being flushed from the buffer cache quickly, a common sign of memory pressure.",
       advice:
-        "Check the Consumers tab (needs a Full Refresh to populate) for a session with huge logical reads — one big table scan can flush the whole cache. Also check the Plan Cache stats on the Overview tab: a bloated ad-hoc plan cache steals this same memory. If PLE is chronically low with no single culprit, the server genuinely needs more RAM (or a lower max server memory ceiling is set than intended).",
+        "Check the Consumers tab for a session with huge logical reads — one big table scan can flush the whole cache. Also check the Plan Cache stats on the Overview tab: a bloated ad-hoc plan cache steals this same memory. If PLE is chronically low with no single culprit, the server genuinely needs more RAM (or a lower max server memory ceiling is set than intended).",
     });
   }
 
@@ -106,7 +106,7 @@ export function diagnose(data: TriageData): Finding[] {
       title: `${data.pressure.pendingMemoryGrants} quer${data.pressure.pendingMemoryGrants === 1 ? "y is" : "ies are"} waiting on a memory grant`,
       detail: "Queries can't get the memory they need to start running — usually memory pressure or a runaway query elsewhere.",
       advice:
-        "Open the Consumers tab (needs a Full Refresh to populate) and check the Memory Grant column — it flags exactly which session(s) are waiting and how much they're asking for. Usually one query holding an oversized grant starves the rest; killing or finishing that one typically releases the queue. Recurring cases are a bad plan or missing index on the greedy query.",
+        "Open the Consumers tab and check the Memory Grant column — it flags exactly which session(s) are waiting and how much they're asking for. Usually one query holding an oversized grant starves the rest; killing or finishing that one typically releases the queue. Recurring cases are a bad plan or missing index on the greedy query.",
     });
   }
 
@@ -126,7 +126,7 @@ export function diagnose(data: TriageData): Finding[] {
       title: `${data.pressure.runnableTasksCount} task${data.pressure.runnableTasksCount === 1 ? " is" : "s are"} waiting for a free CPU core`,
       detail: "Tasks are ready to run but every scheduler is busy — true CPU/scheduler pressure right now, not just elevated wait times.",
       advice:
-        "Same playbook as CPU pressure: find the top CPU burner in the Consumers tab (needs a Full Refresh to populate). One query going parallel across every core (a bad plan doing a huge scan) can starve everything else; killing it or fixing its plan/index usually clears this immediately.",
+        "Same playbook as CPU pressure: find the top CPU burner in the Consumers tab. One query going parallel across every core (a bad plan doing a huge scan) can starve everything else; killing it or fixing its plan/index usually clears this immediately.",
     });
   }
 

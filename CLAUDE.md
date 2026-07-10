@@ -165,10 +165,17 @@ everything in one combined request (`GET /api/triage`) specifically to avoid
 auto-refresh — all three only ever request quick) runs just the small,
 single-pass checks (bounded system DMVs, no per-row scans, no XML, no
 disk/OS syscalls): overview, blocking, longOps, agentJobs, waits,
-pressure, logSpace. `?mode=full` (or the query param omitted — the
+pressure, logSpace. **Consumers is also in this bucket, not full** —
+despite its `OUTER APPLY`s for per-session tempdb usage and memory
+grants, it's keyed off `sys.dm_exec_requests`, which only has a row per
+*currently executing* request — the same naturally-bounded-by-active-work
+shape as `blocking.ts`/`currentWaits.ts`, not a real scan — and "who's
+using the CPU/memory/IO right now" is a core answer to "why is the
+server slow," exactly what a quick check should be able to say without
+the heavier checks below. `?mode=full` (or the query param omitted — the
 "Full Refresh" button explicitly requests it) adds everything else with a
-larger scan surface: consumers, tempdb, vlfCounts, ioLatency, autogrowth,
-deadlocks, volumeSpace. `dashboard.ts`'s `router.get("/triage")`
+larger scan surface: tempdb, vlfCounts, ioLatency, autogrowth, deadlocks,
+volumeSpace. `dashboard.ts`'s `router.get("/triage")`
 runs the quick batch first (always), then conditionally the second batch
 if not `mode=quick`; see `sql/*.ts` below for which specific DMV
 characteristics put a check in which bucket. **Index Stats is excluded
@@ -206,7 +213,7 @@ combined Overview and Log Space tabs) instead of seven-plus. `useTriage`'s
 untouched, and tracks a per-tab `panelUpdatedAt` timestamp shown next to
 the button separately from the global "Last updated" in the refresh bar.
 This also doubles as a way to populate a single full-only tab (e.g.
-Consumers) without paying for the rest of a Full Refresh. `PANEL_FETCHERS`
+IO Latency) without paying for the rest of a Full Refresh. `PANEL_FETCHERS`
 in `dashboard.ts` is the server-side map from tab key to fetcher(s) — it
 must stay in sync with `DashboardTab` in `types.ts` and `buildTabs()` in
 `App.tsx`; a new tab needs an entry in all three or its refresh button
@@ -615,11 +622,13 @@ in the checklist.
   see "Two refresh modes" above), so a DBA can see which tabs have
   something to look at, which are already ruled out, and which simply
   haven't been checked yet, without clicking through all of them.
-  Full-only tabs (Consumers, IO Latency, Autogrowth, Deadlocks, Indexes)
-  and full-only sections within the Overview tab (TempDB, Disk Volume
-  Space) render `NotCheckedPanel.tsx` — a dashed-border placeholder —
-  instead of their normal panel when `hasData` is `undefined`, so "not
-  checked" never gets misread as "checked, nothing found." This tri-state is
+  Full-only tabs (IO Latency, Autogrowth, Deadlocks, Indexes) and
+  full-only sections within the Overview tab (TempDB, Disk Volume Space)
+  render `NotCheckedPanel.tsx` — a dashed-border placeholder — instead of
+  their normal panel when `hasData` is `undefined`, so "not checked"
+  never gets misread as "checked, nothing found." Consumers isn't in this
+  list — it's quick-tier now (see "Two refresh modes" above), so its tab
+  always has real data and never shows the placeholder. This tri-state is
   what replaced the old sorted-by-emptiness 2-column layout when panels
   stopped being co-mounted.
   `DiagnosisSummary`'s `PANEL_TO_TAB` map turns a `Finding`'s `panel` label

@@ -224,7 +224,7 @@ export interface TriageData {
   waits: CurrentWaitRow[];
   pressure: PressureStats;
   logSpace: LogSpaceRow[];
-  consumers?: ConsumerRow[];
+  consumers: ConsumerRow[];
   tempdb?: TempdbStats;
   vlfCounts?: VlfCountRow[];
   ioLatency?: IoLatencyRow[];

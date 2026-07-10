@@ -56,12 +56,7 @@ function buildTabs(data: TriageData): { key: DashboardTab; label: string; hasDat
       ),
     },
     { key: "blocking", label: "Blocking", hasData: data.blocking.length > 0, node: <BlockingPanel blocking={data.blocking} /> },
-    {
-      key: "consumers",
-      label: "Consumers",
-      hasData: data.consumers ? data.consumers.length > 0 : undefined,
-      node: data.consumers ? <ConsumersPanel consumers={data.consumers} /> : <NotCheckedPanel label="Top Resource Consumers (Right Now)" />,
-    },
+    { key: "consumers", label: "Consumers", hasData: data.consumers.length > 0, node: <ConsumersPanel consumers={data.consumers} /> },
     { key: "longops", label: "Backups", hasData: data.longOps.length > 0, node: <LongOpsPanel longOps={data.longOps} /> },
     { key: "agentjobs", label: "Agent Jobs", hasData: data.agentJobs.length > 0, node: <AgentJobsPanel agentJobs={data.agentJobs} /> },
     { key: "waits", label: "Waits", hasData: data.waits.length > 0, node: <WaitsPanel waits={data.waits} /> },
@@ -166,7 +161,7 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
           <button
             onClick={fullRefresh}
             disabled={loading}
-            title="Adds heavier checks: Consumers, TempDB, VLF counts, IO Latency, Autogrowth, Deadlocks, Volume Space. Indexes isn't included — it's slow on servers with many databases; refresh it from its own tab."
+            title="Adds heavier checks: TempDB, VLF counts, IO Latency, Autogrowth, Deadlocks, Volume Space. Indexes isn't included — it's slow on servers with many databases; refresh it from its own tab."
           >
             Full Refresh
           </button>
