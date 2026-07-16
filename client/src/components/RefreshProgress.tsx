@@ -19,6 +19,7 @@ const PANEL_LABELS: Record<string, string> = {
   deadlocks: "Deadlocks",
   volumeSpace: "Volume Space",
   queryStoreRegressions: "Query Store",
+  errorLogEntries: "Error Log",
   indexStats: "Indexes",
 };
 
