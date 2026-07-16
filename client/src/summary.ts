@@ -19,6 +19,7 @@ const MAX_QUERY_CHARS = 200;
 const MAX_CONSUMERS_SHOWN = 25;
 const MAX_BLOCKED_SHOWN = 15;
 const MAX_DEADLOCKS_SHOWN = 3;
+const MAX_QUERY_STORE_SHOWN = 15;
 
 // Plain-text rendering of the whole snapshot, meant to be pasted into an AI chat for further
 // analysis - so every panel is spelled out in full sentences rather than relying on the visual
@@ -275,6 +276,26 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
     }
     if (data.deadlocks.length > shown.length) {
       lines.push(`... and ${data.deadlocks.length - shown.length} more deadlock(s) not shown here - see the Deadlocks tab for the full graphs.`);
+    }
+  }
+  lines.push("");
+
+  lines.push("## Query Store Regressions (queries ≥3x slower than their own recent average; last 24h; Query Store-enabled databases only)");
+  if (data.queryStoreRegressions === undefined) {
+    lines.push(NOT_CHECKED);
+  } else if (data.queryStoreRegressions.length === 0) {
+    lines.push("No regressed queries found in any Query Store-enabled database.");
+  } else {
+    const shown = data.queryStoreRegressions.slice(0, MAX_QUERY_STORE_SHOWN);
+    for (const qs of shown) {
+      lines.push(
+        `- ${qs.databaseName} (query_id ${qs.queryId}): ${qs.regressionRatio.toFixed(1)}x slower — recent avg ${qs.recentAvgDurationMs.toFixed(
+          0
+        )}ms vs. prior avg ${qs.priorAvgDurationMs.toFixed(0)}ms, ${qs.executionCount} execution(s) — ${truncate(qs.queryText, MAX_QUERY_CHARS)}`
+      );
+    }
+    if (data.queryStoreRegressions.length > shown.length) {
+      lines.push(`... and ${data.queryStoreRegressions.length - shown.length} more not shown here - see the Query Store tab.`);
     }
   }
   lines.push("");
