@@ -207,6 +207,12 @@ export interface QueryStoreRegression {
   executionCount: number;
 }
 
+export interface ErrorLogEntry {
+  timestamp: string;
+  severity: number | null;
+  message: string;
+}
+
 // The dashboard's tab keys - shared between App.tsx (which owns the active tab) and
 // DiagnosisSummary.tsx (which maps a Finding's panel name to a tab for its "View details" link).
 export type DashboardTab =
@@ -221,6 +227,7 @@ export type DashboardTab =
   | "autogrowth"
   | "deadlocks"
   | "querystore"
+  | "errorlog"
   | "indexes";
 
 // Refresh has two modes (see App.tsx / useTriage.ts): "quick" runs only small, single-pass
@@ -245,5 +252,6 @@ export interface TriageData {
   deadlocks?: DeadlockEvent[];
   volumeSpace?: VolumeSpaceRow[];
   queryStoreRegressions?: QueryStoreRegression[];
+  errorLogEntries?: ErrorLogEntry[];
   indexStats?: IndexStats;
 }
