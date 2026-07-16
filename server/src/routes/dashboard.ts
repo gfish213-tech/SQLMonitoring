@@ -15,6 +15,7 @@ import { getRecentDeadlocks } from "../sql/deadlocks";
 import { getVolumeSpace } from "../sql/volumeSpace";
 import { getIndexStats } from "../sql/indexStats";
 import { getQueryStoreRegressions } from "../sql/queryStoreRegressions";
+import { getRecentErrorLogEntries } from "../sql/errorLog";
 
 const router = Router();
 
@@ -123,7 +124,7 @@ router.get("/triage", async (req, res) => {
       return;
     }
 
-    const [tempdb, vlfCounts, ioLatency, autogrowth, deadlocks, volumeSpace, queryStoreRegressions] = await Promise.all([
+    const [tempdb, vlfCounts, ioLatency, autogrowth, deadlocks, volumeSpace, queryStoreRegressions, errorLogEntries] = await Promise.all([
       tracked(emit, "tempdb", getTempdbStats()),
       tracked(emit, "vlfCounts", getVlfCounts()),
       tracked(emit, "ioLatency", getIoLatency()),
@@ -131,6 +132,7 @@ router.get("/triage", async (req, res) => {
       tracked(emit, "deadlocks", getRecentDeadlocks()),
       tracked(emit, "volumeSpace", getVolumeSpace()),
       tracked(emit, "queryStoreRegressions", getQueryStoreRegressions()),
+      tracked(emit, "errorLogEntries", getRecentErrorLogEntries()),
     ]);
 
     emit({
@@ -151,6 +153,7 @@ router.get("/triage", async (req, res) => {
         deadlocks,
         volumeSpace,
         queryStoreRegressions,
+        errorLogEntries,
       },
     });
     finish();
@@ -189,6 +192,7 @@ const PANEL_FETCHERS: Record<string, () => Promise<Record<string, unknown>>> = {
   autogrowth: async () => ({ autogrowth: await labeled("autogrowth", getRecentAutogrowthEvents()) }),
   deadlocks: async () => ({ deadlocks: await labeled("deadlocks", getRecentDeadlocks()) }),
   querystore: async () => ({ queryStoreRegressions: await labeled("queryStoreRegressions", getQueryStoreRegressions()) }),
+  errorlog: async () => ({ errorLogEntries: await labeled("errorLogEntries", getRecentErrorLogEntries()) }),
   indexes: async () => ({ indexStats: await labeled("indexStats", getIndexStats()) }),
 };
 
