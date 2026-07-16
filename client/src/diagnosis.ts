@@ -256,5 +256,15 @@ export function diagnose(data: TriageData): Finding[] {
     });
   }
 
+  for (const qs of data.queryStoreRegressions ?? []) {
+    findings.push({
+      severity: qs.regressionRatio >= 5 || qs.recentAvgDurationMs >= 5000 ? "critical" : "warning",
+      panel: "Query Store",
+      title: `A query on ${qs.databaseName} is running ${qs.regressionRatio.toFixed(1)}x slower than its own recent average`,
+      detail: `Recent avg ${qs.recentAvgDurationMs.toFixed(0)}ms vs. prior avg ${qs.priorAvgDurationMs.toFixed(0)}ms, ${qs.executionCount} execution(s) in the latest interval.`,
+      advice: `Open the Query Store tab to see the query text. Immediate mitigation: force the last-known-good plan with sp_query_store_force_plan (find a prior good plan_id via sys.query_store_plan for query_id ${qs.queryId} in SSMS's Query Store UI). Lasting fix: update statistics on the tables it touches, or add/rebuild whatever index the new plan is missing.`,
+    });
+  }
+
   return findings.sort((a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity]);
 }
