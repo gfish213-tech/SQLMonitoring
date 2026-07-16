@@ -18,6 +18,7 @@ const PANEL_LABELS: Record<string, string> = {
   autogrowth: "Autogrowth",
   deadlocks: "Deadlocks",
   volumeSpace: "Volume Space",
+  queryStoreRegressions: "Query Store",
   indexStats: "Indexes",
 };
 
