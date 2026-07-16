@@ -22,6 +22,7 @@ const PANEL_TO_TAB: Record<string, DashboardTab> = {
   Autogrowth: "autogrowth",
   Deadlocks: "deadlocks",
   "Query Store": "querystore",
+  "Error Log": "errorlog",
 };
 
 // Many findings of the same kind (every VLF-fragmented database, every hot IO file, every
@@ -83,7 +84,7 @@ export function DiagnosisSummary({
 
   const quickNote = isQuickOnly && (
     <div className="diagnosis-quick-note">
-      Based on a quick check only — TempDB, VLF counts, IO Latency, Autogrowth, Deadlocks, Volume Space, and Query Store weren't checked this time.
+      Based on a quick check only — TempDB, VLF counts, IO Latency, Autogrowth, Deadlocks, Volume Space, Query Store, and Error Log weren't checked this time.
       Click <strong>Full Refresh</strong> for the complete picture (Index Stats is never included automatically — see the Indexes tab).
     </div>
   );

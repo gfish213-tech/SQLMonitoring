@@ -1,5 +1,5 @@
 import type { TriageData } from "./types";
-import { formatMs } from "./format";
+import { formatMs, truncate } from "./format";
 
 export type Severity = "critical" | "warning" | "info";
 
@@ -263,6 +263,20 @@ export function diagnose(data: TriageData): Finding[] {
       title: `A query on ${qs.databaseName} is running ${qs.regressionRatio.toFixed(1)}x slower than its own recent average`,
       detail: `Recent avg ${qs.recentAvgDurationMs.toFixed(0)}ms vs. prior avg ${qs.priorAvgDurationMs.toFixed(0)}ms, ${qs.executionCount} execution(s) in the latest interval.`,
       advice: `Open the Query Store tab to see the query text. Immediate mitigation: force the last-known-good plan with sp_query_store_force_plan (find a prior good plan_id via sys.query_store_plan for query_id ${qs.queryId} in SSMS's Query Store UI). Lasting fix: update statistics on the tables it touches, or add/rebuild whatever index the new plan is missing.`,
+    });
+  }
+
+  if (data.errorLogEntries && data.errorLogEntries.length > 0) {
+    const worst = data.errorLogEntries.reduce((a, b) => ((b.severity ?? 0) > (a.severity ?? 0) ? b : a));
+    findings.push({
+      severity: (worst.severity ?? 0) >= 20 ? "critical" : "warning",
+      panel: "Error Log",
+      title: `${data.errorLogEntries.length} severity 16+ error log entr${data.errorLogEntries.length === 1 ? "y" : "ies"} in the last 24 hours`,
+      detail: `Worst: severity ${worst.severity ?? "-"} at ${new Date(worst.timestamp).toLocaleTimeString()} — ${truncate(worst.message, 160)}`,
+      advice:
+        (worst.severity ?? 0) >= 24
+          ? "Severity 24-25 means a corruption error (823/824/825) — stop and run DBCC CHECKDB on the affected database immediately; don't take new backups over a known-good one until you know the extent of the damage. Open the Error Log tab for the full message."
+          : "Open the Error Log tab for the full text of every entry. Severity 20+ is a fatal error to that connection/process (check for out-of-memory - 701/17803); severity 16-19 is a normal but real error worth understanding, not routine noise.",
     });
   }
 
