@@ -195,6 +195,18 @@ export interface IndexStats {
   unusedIndexes: UnusedIndex[];
 }
 
+export interface QueryStoreRegression {
+  databaseName: string;
+  queryId: number;
+  queryText: string;
+  recentAvgDurationMs: number;
+  priorAvgDurationMs: number;
+  recentAvgCpuMs: number;
+  priorAvgCpuMs: number;
+  regressionRatio: number;
+  executionCount: number;
+}
+
 // The dashboard's tab keys - shared between App.tsx (which owns the active tab) and
 // DiagnosisSummary.tsx (which maps a Finding's panel name to a tab for its "View details" link).
 export type DashboardTab =
@@ -208,6 +220,7 @@ export type DashboardTab =
   | "iolatency"
   | "autogrowth"
   | "deadlocks"
+  | "querystore"
   | "indexes";
 
 // Refresh has two modes (see App.tsx / useTriage.ts): "quick" runs only small, single-pass
@@ -231,5 +244,6 @@ export interface TriageData {
   autogrowth?: AutogrowthEvent[];
   deadlocks?: DeadlockEvent[];
   volumeSpace?: VolumeSpaceRow[];
+  queryStoreRegressions?: QueryStoreRegression[];
   indexStats?: IndexStats;
 }
