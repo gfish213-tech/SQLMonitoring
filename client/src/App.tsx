@@ -38,7 +38,10 @@ function environmentClass(env?: string): string {
 // run. Treating "not checked" as a third state (not just falling back to "clean") matters here:
 // a dashboard that quietly reads as "all clear" when half its checks never ran would be worse
 // than the long-scrolling single page this replaced.
-function buildTabs(data: TriageData): { key: DashboardTab; label: string; hasData: boolean | undefined; node: ReactNode }[] {
+function buildTabs(
+  data: TriageData,
+  onJumpToPanel: (tab: DashboardTab) => void
+): { key: DashboardTab; label: string; hasData: boolean | undefined; node: ReactNode }[] {
   return [
     {
       key: "overview",
@@ -48,7 +51,7 @@ function buildTabs(data: TriageData): { key: DashboardTab; label: string; hasDat
         <>
           <OverviewBar overview={data.overview} />
           <div className="dashboard-row">
-            <PressurePanel pressure={data.pressure} />
+            <PressurePanel pressure={data.pressure} onViewConsumers={() => onJumpToPanel("consumers")} />
             {data.tempdb ? <TempdbPanel tempdb={data.tempdb} /> : <NotCheckedPanel label="TempDB Contention" />}
           </div>
           {data.volumeSpace ? <VolumeSpacePanel volumeSpace={data.volumeSpace} /> : <NotCheckedPanel label="Disk Volume Space" />}
@@ -134,7 +137,7 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const tabs = data ? buildTabs(data) : [];
+  const tabs = data ? buildTabs(data, setActiveTab) : [];
   const active = tabs.find((t) => t.key === activeTab) ?? tabs[0];
 
   return (

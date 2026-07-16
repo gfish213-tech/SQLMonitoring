@@ -3,6 +3,15 @@
 ## 1.5.0 — 2026-07-08
 
 ### Added
+- **"Who's causing this?" link on the CPU & Memory Pressure panel**: its
+  stat cards (Signal Wait %, Runnable Tasks, Pending Memory Grants, etc.)
+  can only say *how much* pressure there is, never *who's* driving it —
+  that answer is always the Consumers tab, but there was no way to get
+  there from this panel short of manually clicking the tab. A new button
+  in the panel header jumps straight to Consumers (already populated,
+  since it's quick-tier now too — see below), the same tab every one of
+  this panel's own hint tooltips and `diagnosis.ts`'s advice text already
+  point to.
 - **Top Resource Consumers moved into Quick Refresh**: it used to be
   full-only, so seeing who's driving CPU/memory/IO right now meant
   waiting on the heavier checks (IO Latency, Autogrowth, Volume Space)

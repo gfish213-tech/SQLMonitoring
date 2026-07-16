@@ -652,6 +652,18 @@ in the checklist.
   pasted elsewhere. Any new panel with a non-obvious threshold, sample
   window, or row cap should follow the same pattern rather than leaving it
   to only the code comments.
+- **"Who's causing this?" jump links**: a stat card can say *how much*
+  pressure there is (Signal Wait %, Runnable Tasks, Pending Memory
+  Grants...) but never *who* — that's always the Consumers tab, the same
+  answer `diagnosis.ts`'s advice text already points to for every pressure
+  finding. `PressurePanel.tsx` takes an optional `onViewConsumers`
+  callback rendered as a `.diagnosis-jump`-styled button in its
+  `panel-header` (reusing the same visual language as `DiagnosisSummary`'s
+  "View details →" buttons); `App.tsx`'s `buildTabs()` wires it to
+  `setActiveTab("consumers")`. `buildTabs()` takes `onJumpToPanel` as a
+  second argument for exactly this — a future panel needing the same
+  "who" jump should take the same optional callback pattern rather than
+  reaching for tab state directly.
 - `components/ServerPicker.tsx` — the connect screen: a `<select>` populated
   from `GET /api/connection/servers`, with an environment badge, replacing
   what used to be a manual connection form. The list is sorted

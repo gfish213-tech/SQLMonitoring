@@ -1,11 +1,20 @@
 import { StatCard } from "./StatCard";
 import type { PressureStats } from "../types";
 
-export function PressurePanel({ pressure }: { pressure: PressureStats }) {
+// Every stat here answers "how much pressure," never "who's causing it" - that's always the
+// Consumers tab (top CPU/memory/IO burners, with query text), which is why every one of these
+// stats' StatCard hint and diagnosis.ts's advice text both point there. onViewConsumers is
+// optional so this panel still renders standalone (e.g. in a future context with no tab switcher).
+export function PressurePanel({ pressure, onViewConsumers }: { pressure: PressureStats; onViewConsumers?: () => void }) {
   return (
     <section id="panel-pressure" className="panel">
       <div className="panel-header">
         <h2>CPU & Memory Pressure</h2>
+        {onViewConsumers && (
+          <button className="diagnosis-jump" onClick={onViewConsumers} title="See which session/query is actually driving these numbers">
+            Who's causing this? →
+          </button>
+        )}
       </div>
       <div className="stat-grid">
         <StatCard
