@@ -1,5 +1,25 @@
 # Version History
 
+## 1.6.0 — 2026-07-16
+
+### Added
+- **Query Store Regressions tab**: a new full-only tab surfaces queries whose most recent
+  Query Store interval is running at least 3x slower than that same query's own recent
+  average (and at least 1 second, to keep trivial queries out of the noise) — the "it was
+  fine yesterday" cause of slowness that nothing else in the app could see, since it's
+  specific to one query's plan, not a resource or blocking problem. Loops over every
+  database with Query Store enabled (`is_query_store_on = 1`); capped to the top 25
+  regressions server-wide, sorted by how much worse they got. `diagnosis.ts` flags a
+  regression as critical at 5x or a 5-second recent average, with advice to force the prior
+  plan via `sp_query_store_force_plan` as an immediate mitigation.
+- **Error Log tab**: a new full-only tab surfaces the last 24 hours of SQL Server's own
+  error log, filtered to severity 16+ (corruption errors 823/824/825, out-of-memory,
+  and other real failures) instead of the routine startup/backup/checkpoint lines that
+  dominate a raw log — previously only visible by remoting into the server and opening the
+  log file directly. Read via `xp_readerrorlog` against the current log file only.
+  `diagnosis.ts` flags severity 24-25 (corruption) as critical with advice to run
+  `DBCC CHECKDB` immediately.
+
 ## 1.5.0 — 2026-07-08
 
 ### Added

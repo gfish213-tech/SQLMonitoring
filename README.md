@@ -92,7 +92,7 @@ this button, and auto-refresh) runs only the small, single-pass checks:
 Overview, Blocking, Backups/Long Ops, Agent Jobs, Waits, Pressure, Log
 Space. **Full Refresh** additionally runs the heavier checks — Consumers,
 TempDB, VLF Counts, IO Latency, Autogrowth, Deadlocks, Disk Volume Space,
-Indexes. Tabs/sections not covered by the last refresh show a dashed "not
+Query Store Regressions, Error Log, Indexes. Tabs/sections not covered by the last refresh show a dashed "not
 checked" placeholder and a dim gray tab dot, distinct from a red dot
 ("checked, found something") or no dot ("checked, clean"). A **↻ Refresh
 &lt;Tab&gt;** button above every tab's content re-runs just that tab's
@@ -125,8 +125,8 @@ whichever tab it points you at.
 
 Below that, a **tab strip** (pinned to the top while you scroll) switches
 between Overview, Blocking, Consumers, Backups, Agent Jobs, Waits, Log
-Space, IO Latency, Autogrowth, Deadlocks, and Indexes — only one tab's
-content is shown at a time. A tab gets a red dot if it found something, no
+Space, IO Latency, Autogrowth, Deadlocks, Query Store, Error Log, and
+Indexes — only one tab's content is shown at a time. A tab gets a red dot if it found something, no
 dot if it's clean, or a dim gray dot if it's a full-only tab that hasn't
 been checked yet (run **Full Refresh** to check it).
 
@@ -175,6 +175,12 @@ detected") so ruling a cause in or out is a glance, not a read:
   a common cause of sudden multi-second freezes.
 - **Recent Deadlocks** — pulled from the `system_health` extended-events
   session (raw deadlock graph, no setup required).
+- **Query Store Regressions** — queries running at least 3x slower than their
+  own recent average, in any database with Query Store enabled — catches a
+  bad plan change even when nothing else looks wrong.
+- **Error Log** — severity 16+ entries from the last 24 hours (corruption,
+  out-of-memory, other real failures), filtered out of the routine noise a
+  raw error log is mostly made of.
 - **Indexes** — top tables by scan count (a possible missing-index signal)
   and unused indexes (written to but never read — pure write overhead).
 

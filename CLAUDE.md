@@ -305,8 +305,31 @@ in the checklist.
 - `sql/*.ts` — one file per diagnostic check (`overview`, `blocking`,
   `longOps`, `agentJobs`, `consumers`, `currentWaits`, `pressure`, `tempdb`,
   `logSpace`, `ioLatency`, `autogrowth`, `deadlocks`, `volumeSpace`,
-  `indexStats`), each exporting a typed async function that runs against
-  `getPool()`. `statementText.ts` isn't a check itself — it's a shared SQL
+  `queryStoreRegressions`, `errorLog`, `indexStats`), each exporting a typed
+  async function that runs against `getPool()`.
+  - `queryStoreRegressions.ts` — Query Store is per-database, unlike every
+    other DMV this app reads, so this loops over `sys.databases` where
+    `is_query_store_on = 1` (bounded by database count, not row count —
+    the same reasoning `indexStats.ts` used to justify *avoiding*
+    per-database dynamic SQL for per-row lookups doesn't apply here, since
+    this runs once per database, not once per row). Each database's query
+    runs as a single `USE [db]; ...; USE [original]` batch so the
+    connection's context is guaranteed restored before it goes back to the
+    pool, regardless of which physical connection the pool handed it —
+    splitting the USE and the query across separate `pool.request()` calls
+    can't make that guarantee. A query counts as regressed against its own
+    recent history (its last several Query Store intervals), not a fixed
+    threshold, so a query that's always been slow doesn't fire and a fast
+    query that got 3x slower does. Capped to the top 25 server-wide,
+    unlike Consumers — Query Store history isn't naturally bounded by
+    "currently executing."
+  - `errorLog.ts` — reads the last 24h via `xp_readerrorlog` (current log
+    file only), filtered in application code to severity 16+ rather than
+    via `xp_readerrorlog`'s own search-string parameters, since those only
+    AND two patterns together and can't express "any of several critical
+    signatures." Severity alone already catches corruption (823/824/825 =
+    severity 24/25) and out-of-memory (701/17803 = severity 17/20) without
+    a separate pattern list. `statementText.ts` isn't a check itself — it's a shared SQL
   fragment (`CURRENT_STATEMENT_SELECT`) and formatter (`formatQueryText`)
   used by `consumers.ts`, `blocking.ts`, and `longOps.ts`, all three of
   which show "what query is this session running." `sys.dm_exec_sql_text`
@@ -640,7 +663,7 @@ in the checklist.
   (Overview+Pressure+TempDB+VolumeSpace together as the "Overview"
   tab, then one tab each for Blocking, Consumers, Backups, Agent Jobs,
   Waits, Log Space (+VLF counts), IO Latency, Autogrowth, Deadlocks,
-  Indexes) is tab-switched, not stacked on one
+  Query Store, Error Log, Indexes) is tab-switched, not stacked on one
   long page. `buildTabs(data)` is the single place that maps `TriageData`
   to tab definitions — add a new tab there (and to `DashboardTab` in
   `types.ts`) rather than hardcoding another panel into the JSX. Each tab
