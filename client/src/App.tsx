@@ -18,6 +18,7 @@ import { AutogrowthPanel } from "./components/AutogrowthPanel";
 import { DeadlocksPanel } from "./components/DeadlocksPanel";
 import { IndexStatsPanel } from "./components/IndexStatsPanel";
 import { QueryStorePanel } from "./components/QueryStorePanel";
+import { ErrorLogPanel } from "./components/ErrorLogPanel";
 import { NotCheckedPanel } from "./components/NotCheckedPanel";
 import { RefreshProgress } from "./components/RefreshProgress";
 import { useTriage } from "./hooks/useTriage";
@@ -99,6 +100,16 @@ function buildTabs(
       ),
     },
     {
+      key: "errorlog",
+      label: "Error Log",
+      hasData: data.errorLogEntries ? data.errorLogEntries.length > 0 : undefined,
+      node: data.errorLogEntries ? (
+        <ErrorLogPanel errorLogEntries={data.errorLogEntries} />
+      ) : (
+        <NotCheckedPanel label="Error Log" />
+      ),
+    },
+    {
       key: "indexes",
       label: "Indexes",
       hasData: data.indexStats ? data.indexStats.topScannedTables.length > 0 || data.indexStats.unusedIndexes.length > 0 : undefined,
@@ -175,7 +186,7 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
           <button
             onClick={fullRefresh}
             disabled={loading}
-            title="Adds heavier checks: TempDB, VLF counts, IO Latency, Autogrowth, Deadlocks, Volume Space, Query Store. Indexes isn't included — it's slow on servers with many databases; refresh it from its own tab."
+            title="Adds heavier checks: TempDB, VLF counts, IO Latency, Autogrowth, Deadlocks, Volume Space, Query Store, Error Log. Indexes isn't included — it's slow on servers with many databases; refresh it from its own tab."
           >
             Full Refresh
           </button>
