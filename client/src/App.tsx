@@ -17,6 +17,7 @@ import { IoLatencyPanel } from "./components/IoLatencyPanel";
 import { AutogrowthPanel } from "./components/AutogrowthPanel";
 import { DeadlocksPanel } from "./components/DeadlocksPanel";
 import { IndexStatsPanel } from "./components/IndexStatsPanel";
+import { QueryStorePanel } from "./components/QueryStorePanel";
 import { NotCheckedPanel } from "./components/NotCheckedPanel";
 import { RefreshProgress } from "./components/RefreshProgress";
 import { useTriage } from "./hooks/useTriage";
@@ -86,6 +87,16 @@ function buildTabs(
       label: "Deadlocks",
       hasData: data.deadlocks ? data.deadlocks.length > 0 : undefined,
       node: data.deadlocks ? <DeadlocksPanel deadlocks={data.deadlocks} /> : <NotCheckedPanel label="Recent Deadlocks" />,
+    },
+    {
+      key: "querystore",
+      label: "Query Store",
+      hasData: data.queryStoreRegressions ? data.queryStoreRegressions.length > 0 : undefined,
+      node: data.queryStoreRegressions ? (
+        <QueryStorePanel queryStoreRegressions={data.queryStoreRegressions} />
+      ) : (
+        <NotCheckedPanel label="Query Store Regressions" />
+      ),
     },
     {
       key: "indexes",
@@ -164,7 +175,7 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
           <button
             onClick={fullRefresh}
             disabled={loading}
-            title="Adds heavier checks: TempDB, VLF counts, IO Latency, Autogrowth, Deadlocks, Volume Space. Indexes isn't included — it's slow on servers with many databases; refresh it from its own tab."
+            title="Adds heavier checks: TempDB, VLF counts, IO Latency, Autogrowth, Deadlocks, Volume Space, Query Store. Indexes isn't included — it's slow on servers with many databases; refresh it from its own tab."
           >
             Full Refresh
           </button>
