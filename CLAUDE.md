@@ -358,7 +358,19 @@ in the checklist.
     `pressure.ts` also reports `sys.dm_os_schedulers.runnable_tasks_count` /
     `work_queue_count` (true worker/scheduler exhaustion — distinct from,
     and doesn't need, the 1-second sampling the wait-time-based signal wait
-    % does).
+    % does). Runnable tasks specifically is *not* read from
+    `dm_os_schedulers`' own pre-aggregated column, though — that counts
+    every runnable task per scheduler, including SQL Server's own internal
+    background workers (lazy writer, checkpoint, ghost cleanup, etc.),
+    which made it read as a mystery number that didn't match anything
+    visible on the Consumers tab. Instead it joins `sys.dm_os_tasks`
+    (per-task detail) to `sys.dm_exec_sessions` and filters
+    `is_user_process = 1` — the same technique `currentWaits.ts` uses for
+    the same reason — so it only counts tasks a real user session is
+    actually driving. `work_queue_count` stays read from
+    `dm_os_schedulers` directly, unfiltered: it's a genuine capacity
+    signal (SQL Server ran out of worker threads entirely), not tied to
+    any specific session the way a runnable task is.
   - `agentJobs.ts` — matches a running job to its live session by computing
     the job_id-as-hex string *in SQL* (`CAST(job_id AS varbinary(16))`,
     style 2) and matching it against `sys.dm_exec_sessions.program_name`.

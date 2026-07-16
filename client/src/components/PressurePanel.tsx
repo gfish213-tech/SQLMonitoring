@@ -44,7 +44,7 @@ export function PressurePanel({ pressure, onViewConsumers }: { pressure: Pressur
           label="Runnable Tasks"
           value={String(pressure.runnableTasksCount)}
           tone={pressure.runnableTasksCount > 0 ? "warning" : undefined}
-          hint="Tasks ready to run but waiting for a free CPU core, right now. Non-zero means true scheduler/CPU pressure, distinct from Signal Wait % (which needs a sample window to compute)."
+          hint="User tasks ready to run but waiting for a free CPU core, right now (SQL Server's own background workers - lazy writer, checkpoint, etc. - are excluded, so this only reflects real user-driven CPU pressure). Non-zero means true scheduler/CPU pressure, distinct from Signal Wait % (which needs a sample window to compute). A single query running in parallel can account for several of these from just one row in Consumers, so this number doesn't need to match the Consumers row count."
         />
         <StatCard
           label="Worker Queue"

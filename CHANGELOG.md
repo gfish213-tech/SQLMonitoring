@@ -136,6 +136,20 @@
   joins need one) — a "-" there is expected, not a bug.
 
 ### Fixed
+- **"Runnable Tasks" counted SQL Server's own background workers, not
+  just user activity**: it read from `sys.dm_os_schedulers`' own
+  pre-aggregated `runnable_tasks_count` column, which counts *every*
+  runnable task per scheduler — including SQL Server's internal
+  housekeeping workers (lazy writer, checkpoint, ghost cleanup, etc.) —
+  so it could show e.g. "4" with nothing to show for it on the Consumers
+  tab, since those background tasks never appear there. Now joins
+  `sys.dm_os_tasks` (per-task detail) to `sys.dm_exec_sessions` and
+  filters `is_user_process = 1` — the same technique already used for
+  Current Waits — so the number only reflects tasks a real user session
+  is actually driving. Note this still won't match the Consumers row
+  count 1:1 in every case: one parallel query is one row in Consumers
+  but can account for several runnable tasks at once, which is correct,
+  not a bug (the stat card's hint now explains this).
 - **A fixed disk latency problem kept reading as an active critical
   finding indefinitely**: the diagnosis flags the worse of a file's
   since-restart average latency or its 1-second-delta current reading —

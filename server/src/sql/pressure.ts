@@ -69,12 +69,24 @@ export async function getPressureStats(): Promise<PressureStats> {
     // worker/scheduler pressure, distinct from signal_wait_percent (which is wait-time-based
     // and needs a sample window). work_queue_count > 0 is more serious: SQL Server has run out
     // of worker threads and new requests are queuing before they even get a worker assigned.
+    //
+    // sys.dm_os_schedulers.runnable_tasks_count (the obvious column for this) counts *every*
+    // runnable task per scheduler, including SQL Server's own internal background workers (lazy
+    // writer, checkpoint, ghost cleanup, etc.) - it can read e.g. "4" while the Consumers tab
+    // shows only 1-2 user sessions, with no way to tell from this number alone whether that's
+    // real user-driven CPU pressure or just background housekeeping. Joining sys.dm_os_tasks (the
+    // per-task detail, unlike dm_os_schedulers' pre-aggregated counts) to sys.dm_exec_sessions and
+    // filtering is_user_process = 1 - the same technique currentWaits.ts uses for the same reason
+    // - counts only tasks actually driven by a user request. work_queue_count isn't filtered the
+    // same way: it's a genuine capacity signal (SQL Server ran out of worker threads entirely),
+    // not tied to any specific session the way a runnable task is.
     pool.request().query(`
       SELECT
-        SUM(runnable_tasks_count) AS runnable_tasks_count,
-        SUM(work_queue_count) AS work_queue_count
-      FROM sys.dm_os_schedulers
-      WHERE status = 'VISIBLE ONLINE'
+        (SELECT COUNT(*)
+         FROM sys.dm_os_tasks t
+         INNER JOIN sys.dm_exec_sessions s ON s.session_id = t.session_id AND s.is_user_process = 1
+         WHERE t.task_state = 'RUNNABLE') AS runnable_tasks_count,
+        (SELECT SUM(work_queue_count) FROM sys.dm_os_schedulers WHERE status = 'VISIBLE ONLINE') AS work_queue_count
     `),
   ]);
 
