@@ -20,6 +20,7 @@ const MAX_CONSUMERS_SHOWN = 25;
 const MAX_BLOCKED_SHOWN = 15;
 const MAX_DEADLOCKS_SHOWN = 3;
 const MAX_QUERY_STORE_SHOWN = 15;
+const MAX_ERROR_LOG_SHOWN = 20;
 
 // Plain-text rendering of the whole snapshot, meant to be pasted into an AI chat for further
 // analysis - so every panel is spelled out in full sentences rather than relying on the visual
@@ -296,6 +297,22 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
     }
     if (data.queryStoreRegressions.length > shown.length) {
       lines.push(`... and ${data.queryStoreRegressions.length - shown.length} more not shown here - see the Query Store tab.`);
+    }
+  }
+  lines.push("");
+
+  lines.push("## Error Log (severity 16+ only; last 24 hours; current log file)");
+  if (data.errorLogEntries === undefined) {
+    lines.push(NOT_CHECKED);
+  } else if (data.errorLogEntries.length === 0) {
+    lines.push("No severity 16+ entries in the last 24 hours.");
+  } else {
+    const shown = data.errorLogEntries.slice(0, MAX_ERROR_LOG_SHOWN);
+    for (const e of shown) {
+      lines.push(`- ${new Date(e.timestamp).toLocaleString()} (severity ${e.severity ?? "-"}): ${truncate(e.message, MAX_QUERY_CHARS)}`);
+    }
+    if (data.errorLogEntries.length > shown.length) {
+      lines.push(`... and ${data.errorLogEntries.length - shown.length} more not shown here - see the Error Log tab.`);
     }
   }
   lines.push("");
