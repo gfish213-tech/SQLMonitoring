@@ -6,7 +6,11 @@ export function IoLatencyPanel({ ioLatency }: { ioLatency: IoLatencyRow[] }) {
     <Section
       id="panel-iolatency"
       title="Disk / IO Latency"
-      badge={<span className="panel-hint">flagged if either the since-restart average or the last ~1s is elevated</span>}
+      badge={
+        <span className="panel-hint">
+          flagged if either the since-restart average or the last ~1s is elevated · R = read, W = write
+        </span>
+      }
       isEmpty={ioLatency.length === 0}
       emptyText="No database file has elevated read/write latency."
     >

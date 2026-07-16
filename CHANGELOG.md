@@ -3,6 +3,10 @@
 ## 1.5.0 — 2026-07-08
 
 ### Added
+- **IO Latency panel explains "R" / "W"**: the read/write latency, IOPS,
+  and throughput columns were labeled with bare "R"/"W" prefixes and no
+  explanation of what they stood for. The panel's badge now spells out
+  "R = read, W = write" alongside its existing threshold caveat.
 - **`start.bat` skips the rebuild on a repeat run with nothing new**: it
   used to run a full client+server rebuild (`npm run build`) on *every*
   run regardless of whether anything actually changed since last time —
