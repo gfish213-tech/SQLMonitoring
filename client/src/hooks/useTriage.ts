@@ -13,7 +13,7 @@ const AUTO_REFRESH_INTERVAL_MS = 20000;
 // server to make a DBA wait on a whole Full Refresh just to see panels that were long since
 // ready; it's only ever fetched via the Indexes tab's own "↻ Refresh Indexes" button.
 const QUICK_PANELS = ["overview", "blocking", "longOps", "agentJobs", "waits", "pressure", "logSpace", "consumers"];
-const FULL_ONLY_PANELS = ["tempdb", "vlfCounts", "ioLatency", "autogrowth", "deadlocks", "volumeSpace"];
+const FULL_ONLY_PANELS = ["tempdb", "vlfCounts", "ioLatency", "autogrowth", "deadlocks", "volumeSpace", "queryStoreRegressions"];
 const ALL_PANELS = [...QUICK_PANELS, ...FULL_ONLY_PANELS];
 
 // One entry per check the server tracks for a given refresh - see dashboard.ts's /triage route.
