@@ -72,11 +72,21 @@ if not exist "server\package.json" (
   )
 )
 
+rem Defaults to "always rebuild" (the previous, safe-but-slower behavior) - only set to 0 below
+rem once we've actually confirmed nothing that could affect the build changed.
+set NEED_REBUILD=1
+
 git rev-parse --is-inside-work-tree >nul 2>&1
 if errorlevel 1 (
   echo Not a git repository - skipping update check.
 ) else (
   echo Checking for updates...
+
+  rem Captured so we can tell below whether git pull actually moved HEAD - a full client+server
+  rem rebuild takes several seconds even when nothing changed, and on a repeat run (the common
+  rem case: same machine, checking again later) that's several seconds wasted every single time.
+  set BEFORE_HEAD=
+  for /f "delims=" %%i in ('git rev-parse HEAD 2^>nul') do set BEFORE_HEAD=%%i
 
   rem Detect whether "git stash push" actually created a stash (rather than trusting "git diff"
   rem to predict it, which can false-positive on Windows from CRLF normalization and stash
@@ -126,6 +136,17 @@ if errorlevel 1 (
       pause
     )
   )
+
+  rem Skip the rebuild only when we're confident nothing that affects it changed: HEAD didn't
+  rem move (no new commits pulled), no local changes were stashed/restored (they could have
+  rem touched source, not just config - can't cheaply tell which from here, so treat any stash
+  rem as "must rebuild" to stay safe), and a previous build actually exists to fall back on.
+  set AFTER_HEAD=
+  for /f "delims=" %%i in ('git rev-parse HEAD 2^>nul') do set AFTER_HEAD=%%i
+
+  if "!DID_STASH!"=="0" if "!BEFORE_HEAD!"=="!AFTER_HEAD!" if exist "client\dist\index.html" if exist "server\dist\index.js" (
+    set NEED_REBUILD=0
+  )
 )
 
 rem Some environments (e.g. a corporate npm policy) gate install scripts behind an approval
@@ -135,16 +156,21 @@ rem driver is not built on this host" even though install otherwise looked fine.
 rem "--allow-scripts-pending" turned out to just re-list pending scripts, not approve them -
 rem the actual mechanism is per-package by name. Best-effort: plain npm doesn't have this
 rem subcommand at all, so ignore failures here rather than aborting.
-if exist "server\package.json" (
-  pushd server
-  call npm approve-scripts msnodesqlv8 2>nul
-  call npm approve-scripts esbuild 2>nul
-  popd
-)
-if exist "client\package.json" (
-  pushd client
-  call npm approve-scripts esbuild 2>nul
-  popd
+rem Only needed when something could have changed (package.json only changes via a commit, the
+rem same signal NEED_REBUILD already tracks) - otherwise these are guaranteed no-op subprocess
+rem calls that just add time to every run.
+if "!NEED_REBUILD!"=="1" (
+  if exist "server\package.json" (
+    pushd server
+    call npm approve-scripts msnodesqlv8 2>nul
+    call npm approve-scripts esbuild 2>nul
+    popd
+  )
+  if exist "client\package.json" (
+    pushd client
+    call npm approve-scripts esbuild 2>nul
+    popd
+  )
 )
 
 echo Installing / updating dependencies...
@@ -160,7 +186,12 @@ if errorlevel 1 (
 )
 
 echo Starting SQL Performance Monitor...
-start "SQL Performance Monitor - keep this window open" cmd /k npm run serve
+if "!NEED_REBUILD!"=="0" (
+  echo No code changes since the last run - skipping the rebuild and starting directly.
+  start "SQL Performance Monitor - keep this window open" cmd /k npm start
+) else (
+  start "SQL Performance Monitor - keep this window open" cmd /k npm run serve
+)
 
 echo Waiting for the server to come up...
 set /a attempts=0

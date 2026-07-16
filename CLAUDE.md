@@ -44,16 +44,34 @@ is hardcoded as `BRANCH` in the script (currently
 pushed to), regardless of which branch happens to be checked out locally,
 auto-stashing and restoring any local tracked edits (e.g. a user's own
 additions to `server/config/servers.json`) around the switch/pull so
-neither blocks on the other. Then best-effort runs `npm approve-scripts
-msnodesqlv8` / `npm approve-scripts esbuild` in `server/` and `client/` as
-a fallback for the `allowScripts` gate (see below) — this isn't a standard
-npm subcommand, so failures here are silently ignored rather than aborting
-the whole script — then `npm run install:all`, then `npm run
-serve` in its own window, polls `localhost:4000` until the server
-responds, and opens it in the default browser. **Update the `BRANCH`
-value in `start.bat` if/when this work moves to a different branch (e.g.
-after merging to main)** — keep it in sync with the npm scripts too if
-those change (e.g. if the port or script names change).
+neither blocks on the other. It skips the rebuild entirely on a repeat
+run where nothing changed — `npm run build` (client `tsc -b && vite
+build` plus server `tsc`) measured at ~4s combined even with a fully
+warm TypeScript incremental cache, because for a project this size
+process-startup/compiler-init overhead dominates over actual
+re-checking work, so there was no "nothing to do, finishes instantly"
+case to rely on; it had to be skipped explicitly instead. `NEED_REBUILD`
+is set only when `git pull` actually moved `HEAD`, a stash was
+popped (local changes *might* have touched source, not just config —
+can't cheaply tell which, so any stash forces a rebuild to stay safe),
+or `client/dist`/`server/dist` don't exist yet; when none of those hold,
+it runs `npm start` directly instead of `npm run serve`, and also skips
+the `npm approve-scripts` calls below (guaranteed no-ops when
+`package.json` hasn't changed, since that only happens via a commit —
+the same signal `NEED_REBUILD` already tracks). Otherwise it best-effort
+runs `npm approve-scripts msnodesqlv8` / `npm approve-scripts esbuild`
+in `server/` and `client/` as a fallback for the `allowScripts` gate (see
+below) — this isn't a standard npm subcommand, so failures here are
+silently ignored rather than aborting the whole script. `npm run
+install:all` always runs regardless (cheap when nothing to do, and a
+safety net against e.g. a manually-deleted `node_modules` that
+`NEED_REBUILD`'s git-based signal wouldn't catch). Then starts the app
+in its own window, polls `localhost:4000` until the server responds, and
+opens it in the default browser. **Update the `BRANCH` value in
+`start.bat` if/when this work moves to a different branch (e.g. after
+merging to main)** — keep it in sync with the npm scripts too if those
+change (e.g. if the port or script names, or the `dist` entry-point
+paths the rebuild-skip check looks for, change).
 
 ```bash
 # From repo root — the primary way this app is meant to be run

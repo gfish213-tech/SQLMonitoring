@@ -3,6 +3,19 @@
 ## 1.5.0 — 2026-07-08
 
 ### Added
+- **`start.bat` skips the rebuild on a repeat run with nothing new**: it
+  used to run a full client+server rebuild (`npm run build`) on *every*
+  run regardless of whether anything actually changed since last time —
+  measured at ~4 seconds combined even with a fully warm TypeScript
+  incremental cache (process-startup/compiler-init overhead dominates at
+  this project's size, so there's no free "nothing to do" fast path to
+  rely on). It now only rebuilds when `git pull` actually moved `HEAD`,
+  local changes were stashed/restored around the pull (might have
+  touched source, not just config — treated as "must rebuild" to stay
+  safe), or a previous build doesn't exist yet; otherwise it runs
+  `npm start` directly and skips the (now guaranteed no-op)
+  `npm approve-scripts` calls too. Saves roughly 5 seconds on every
+  "just checking in again" run, the common case after the first.
 - **"Who's causing this?" link on the CPU & Memory Pressure panel**: its
   stat cards (Signal Wait %, Runnable Tasks, Pending Memory Grants, etc.)
   can only say *how much* pressure there is, never *who's* driving it —
