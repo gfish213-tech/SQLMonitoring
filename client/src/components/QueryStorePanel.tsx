@@ -64,6 +64,7 @@ export function QueryStorePanel({
               <thead>
                 <tr>
                   <th>Database</th>
+                  <th className="num">Query ID</th>
                   <th>Query</th>
                   <th className="num">Recent Avg</th>
                   <th className="num">Prior Avg</th>
@@ -76,6 +77,7 @@ export function QueryStorePanel({
                 {queryStoreRegressions.map((row) => (
                   <tr key={`${row.databaseName}-${row.queryId}`}>
                     <td>{row.databaseName}</td>
+                    <td className="num">{row.queryId}</td>
                     <td title={row.queryText}>{truncate(row.queryText, 120)}</td>
                     <td className="num">{row.recentAvgDurationMs.toFixed(0)} ms</td>
                     <td className="num">{row.priorAvgDurationMs.toFixed(0)} ms</td>
