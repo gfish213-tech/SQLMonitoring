@@ -92,9 +92,15 @@ function buildTabs(
     {
       key: "querystore",
       label: "Query Store",
-      hasData: data.queryStoreRegressions ? data.queryStoreRegressions.length > 0 : undefined,
+      hasData: data.queryStoreRegressions
+        ? data.queryStoreRegressions.length > 0 || (data.queryStoreFailedDatabases?.length ?? 0) > 0
+        : undefined,
       node: data.queryStoreRegressions ? (
-        <QueryStorePanel queryStoreRegressions={data.queryStoreRegressions} />
+        <QueryStorePanel
+          queryStoreRegressions={data.queryStoreRegressions}
+          queryStoreDatabaseCount={data.queryStoreDatabaseCount}
+          queryStoreFailedDatabases={data.queryStoreFailedDatabases}
+        />
       ) : (
         <NotCheckedPanel label="Query Store Regressions" />
       ),

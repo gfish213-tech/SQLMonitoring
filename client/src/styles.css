@@ -520,6 +520,12 @@ button.primary {
   color: var(--text-dim);
 }
 
+.panel-warning-note {
+  font-size: 12px;
+  color: var(--warning);
+  margin-bottom: 10px;
+}
+
 .panel-badge-row {
   display: flex;
   align-items: center;
