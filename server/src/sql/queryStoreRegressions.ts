@@ -144,6 +144,34 @@ async function getRegressionsForDatabase(dbName: string, originalDb: string): Pr
   }));
 }
 
+const MAX_REGRESSIONS_TOTAL = 25;
+const MIN_REGRESSIONS_PER_DATABASE = 5;
+
+// A flat "sort everything by ratio, take the global top 25" cap sounds right but isn't: one
+// database with many severely-regressed queries can fill the entire list and crowd out every
+// other database's regressions, even ones that are still worth knowing about - a DBA watching 4
+// databases would see only the noisiest one and have no idea the other 3 have anything going on
+// at all. Guaranteeing each database that has regressions at least MIN_REGRESSIONS_PER_DATABASE
+// slots (its own worst first) before filling the rest of the budget with the next-worst overall
+// keeps the list severity-ordered without letting one database silently own the whole thing.
+function selectAcrossDatabases(regressions: QueryStoreRegression[]): QueryStoreRegression[] {
+  const byDatabase = new Map<string, QueryStoreRegression[]>();
+  for (const r of regressions) {
+    const list = byDatabase.get(r.databaseName) ?? [];
+    list.push(r);
+    byDatabase.set(r.databaseName, list);
+  }
+  for (const list of byDatabase.values()) list.sort((a, b) => b.regressionRatio - a.regressionRatio);
+
+  const guaranteed: QueryStoreRegression[] = [];
+  for (const list of byDatabase.values()) guaranteed.push(...list.slice(0, MIN_REGRESSIONS_PER_DATABASE));
+
+  const guaranteedSet = new Set(guaranteed);
+  const remainder = regressions.filter((r) => !guaranteedSet.has(r)).sort((a, b) => b.regressionRatio - a.regressionRatio);
+
+  return [...guaranteed, ...remainder].slice(0, MAX_REGRESSIONS_TOTAL).sort((a, b) => b.regressionRatio - a.regressionRatio);
+}
+
 // Query Store is enabled per-database (unlike every other DMV this app reads, which is
 // server-wide) - is_query_store_on tells us which databases to even bother checking.
 // databaseCount/failedDatabases exist so an empty regressions list is never ambiguous between
@@ -183,7 +211,7 @@ export async function getQueryStoreRegressions(): Promise<QueryStoreRegressionsR
     // Capped, unlike Consumers - Query Store history isn't naturally bounded by "currently
     // executing" the way sys.dm_exec_requests is, so a busy multi-database server could otherwise
     // return hundreds of rows.
-    regressions: regressions.sort((a, b) => b.regressionRatio - a.regressionRatio).slice(0, 25),
+    regressions: selectAcrossDatabases(regressions),
     databaseCount: dbNames.length,
     failedDatabases,
   };
