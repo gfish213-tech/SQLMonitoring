@@ -51,7 +51,13 @@ export function useTriage() {
           prev.map((c) => (c.panel === event.panel ? { panel: c.panel, status: event.ok ? "done" : "error", ms: event.ms } : c))
         );
       });
-      setData(result);
+      // Merge, don't replace: a quick/full response never includes the manual-only fields
+      // (Query Store, Error Log, Index Stats) and a quick response never includes the full-only
+      // ones either - replacing the whole object would silently wipe out whatever a prior
+      // Full Refresh or per-tab "↻ Refresh <Tab>" click had already populated, reverting those
+      // tabs back to "not checked" even though they genuinely were checked a moment ago. Same
+      // merge refreshPanel already uses below, for the same reason.
+      setData((prev) => (prev ? { ...prev, ...result } : result));
       setLastMode(mode);
       setError(null);
       setLastUpdated(new Date());
