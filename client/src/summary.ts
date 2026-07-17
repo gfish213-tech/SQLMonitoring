@@ -7,10 +7,12 @@ function field(label: string, value: string | number | null | undefined): string
 }
 
 const NOT_CHECKED = "Not checked in this quick refresh - run Full Refresh for this section.";
-// Index Stats is excluded from both Quick and Full Refresh (see dashboard.ts) - only its own
-// tab's "Refresh Indexes" button populates it, so the generic NOT_CHECKED text above would be
-// wrong here, not just imprecise.
-const INDEX_STATS_NOT_CHECKED = "Not checked automatically - use the Indexes tab's own Refresh button for this section.";
+// Index Stats, Query Store Regressions, and Error Log are all excluded from both Quick and Full
+// Refresh (see dashboard.ts) - only their own tab's "Refresh <Tab>" button populates them, so the
+// generic NOT_CHECKED text above would be wrong here, not just imprecise.
+function manualOnlyNotChecked(buttonLabel: string): string {
+  return `Not checked automatically - use the "${buttonLabel}" button on its own tab for this section.`;
+}
 
 // Query text and long lists (deadlock XML especially) can otherwise balloon this into thousands
 // of lines once Consumers has no server-side row cap - the point of this text is diagnostic
@@ -283,7 +285,7 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
 
   lines.push("## Query Store Regressions (queries ≥3x slower than their own recent average; last 24h; Query Store-enabled databases only)");
   if (data.queryStoreRegressions === undefined) {
-    lines.push(NOT_CHECKED);
+    lines.push(manualOnlyNotChecked("↻ Refresh Query Store"));
   } else {
     if (data.queryStoreDatabaseCount !== undefined) {
       lines.push(field("Query Store-enabled databases", data.queryStoreDatabaseCount));
@@ -315,7 +317,9 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
 
   lines.push("## Error Log (severity 16+ only; last 24 hours; current log file)");
   if (data.errorLogEntries === undefined) {
-    lines.push(NOT_CHECKED);
+    lines.push(manualOnlyNotChecked("↻ Refresh Error Log"));
+  } else if (data.errorLogError) {
+    lines.push(`Failed to check (NOT fully checked - a real entry could be missing from this snapshot): ${data.errorLogError}`);
   } else if (data.errorLogEntries.length === 0) {
     lines.push("No severity 16+ entries in the last 24 hours.");
   } else {
@@ -331,7 +335,7 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
 
   lines.push("## Top Tables by Scans (since last restart; index_id shown instead of index name)");
   if (data.indexStats === undefined) {
-    lines.push(INDEX_STATS_NOT_CHECKED);
+    lines.push(manualOnlyNotChecked("↻ Refresh Indexes"));
   } else if (data.indexStats.topScannedTables.length === 0) {
     lines.push("No table has significant scan activity.");
   } else {
@@ -343,7 +347,7 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
 
   lines.push("## Unused Indexes (since last restart; written to but never read)");
   if (data.indexStats === undefined) {
-    lines.push(INDEX_STATS_NOT_CHECKED);
+    lines.push(manualOnlyNotChecked("↻ Refresh Indexes"));
   } else if (data.indexStats.unusedIndexes.length === 0) {
     lines.push("No index has write activity with zero reads.");
   } else {

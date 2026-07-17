@@ -279,6 +279,16 @@ export function diagnose(data: TriageData): Finding[] {
     });
   }
 
+  if (data.errorLogError) {
+    findings.push({
+      severity: "warning",
+      panel: "Error Log",
+      title: "Error Log check failed",
+      detail: `Not fully checked this refresh, so a real severity 16+ entry could be missing from this snapshot: ${data.errorLogError}`,
+      advice: "Open the Error Log tab for the full error text, then click ↻ Refresh Error Log to retry.",
+    });
+  }
+
   if (data.errorLogEntries && data.errorLogEntries.length > 0) {
     const worst = data.errorLogEntries.reduce((a, b) => ((b.severity ?? 0) > (a.severity ?? 0) ? b : a));
     findings.push({

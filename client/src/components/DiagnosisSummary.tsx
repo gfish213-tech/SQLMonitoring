@@ -84,8 +84,8 @@ export function DiagnosisSummary({
 
   const quickNote = isQuickOnly && (
     <div className="diagnosis-quick-note">
-      Based on a quick check only — TempDB, VLF counts, IO Latency, Autogrowth, Deadlocks, Volume Space, Query Store, and Error Log weren't checked this time.
-      Click <strong>Full Refresh</strong> for the complete picture (Index Stats is never included automatically — see the Indexes tab).
+      Based on a quick check only — TempDB, VLF counts, IO Latency, Autogrowth, Deadlocks, and Volume Space weren't checked this time.
+      Click <strong>Full Refresh</strong> for the complete picture (Query Store, Error Log, and Index Stats are never included automatically — refresh each from its own tab).
     </div>
   );
 

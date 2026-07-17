@@ -261,5 +261,6 @@ export interface TriageData {
   queryStoreDatabaseCount?: number;
   queryStoreFailedDatabases?: QueryStoreDatabaseFailure[];
   errorLogEntries?: ErrorLogEntry[];
+  errorLogError?: string | null;
   indexStats?: IndexStats;
 }

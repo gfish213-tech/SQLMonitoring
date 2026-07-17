@@ -95,6 +95,8 @@ function buildTabs(
       hasData: data.queryStoreRegressions
         ? data.queryStoreRegressions.length > 0 || (data.queryStoreFailedDatabases?.length ?? 0) > 0
         : undefined,
+      // Like Indexes, Full Refresh never populates this one either (see dashboard.ts) - the
+      // default "click Full Refresh" hint would be wrong here, not just generic.
       node: data.queryStoreRegressions ? (
         <QueryStorePanel
           queryStoreRegressions={data.queryStoreRegressions}
@@ -102,17 +104,32 @@ function buildTabs(
           queryStoreFailedDatabases={data.queryStoreFailedDatabases}
         />
       ) : (
-        <NotCheckedPanel label="Query Store Regressions" />
+        <NotCheckedPanel
+          label="Query Store Regressions"
+          hint={
+            <>
+              Not checked automatically — click <strong>↻ Refresh Query Store</strong> above to check this (loops over every
+              Query Store-enabled database, so it's excluded from Quick/Full Refresh).
+            </>
+          }
+        />
       ),
     },
     {
       key: "errorlog",
       label: "Error Log",
-      hasData: data.errorLogEntries ? data.errorLogEntries.length > 0 : undefined,
+      hasData: data.errorLogEntries ? data.errorLogEntries.length > 0 || !!data.errorLogError : undefined,
       node: data.errorLogEntries ? (
-        <ErrorLogPanel errorLogEntries={data.errorLogEntries} />
+        <ErrorLogPanel errorLogEntries={data.errorLogEntries} errorLogError={data.errorLogError} />
       ) : (
-        <NotCheckedPanel label="Error Log" />
+        <NotCheckedPanel
+          label="Error Log"
+          hint={
+            <>
+              Not checked automatically — click <strong>↻ Refresh Error Log</strong> above to check this.
+            </>
+          }
+        />
       ),
     },
     {
@@ -192,7 +209,7 @@ function Dashboard({ connection, onDisconnect }: { connection: ConnectionMeta; o
           <button
             onClick={fullRefresh}
             disabled={loading}
-            title="Adds heavier checks: TempDB, VLF counts, IO Latency, Autogrowth, Deadlocks, Volume Space, Query Store, Error Log. Indexes isn't included — it's slow on servers with many databases; refresh it from its own tab."
+            title="Adds heavier checks: TempDB, VLF counts, IO Latency, Autogrowth, Deadlocks, Volume Space. Query Store, Error Log, and Indexes aren't included — refresh each from its own tab."
           >
             Full Refresh
           </button>

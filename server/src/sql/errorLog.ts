@@ -1,9 +1,14 @@
-import { getPool } from "../db";
+import { getPool, extractDriverError } from "../db";
 
 export interface ErrorLogEntry {
   timestamp: string;
   severity: number | null;
   message: string;
+}
+
+export interface ErrorLogResult {
+  entries: ErrorLogEntry[];
+  error: string | null;
 }
 
 interface RawErrorLogRow {
@@ -27,9 +32,11 @@ function parseSeverity(text: string): number | null {
 // Reads the last 24 hours of SQL Server's own error log (current log file only - a log that
 // recycled very recently, e.g. right after a restart, could have older entries in Errorlog.1
 // this doesn't follow; a documented trade-off, not an oversight, matching how indexStats.ts
-// documents its own index-name-resolution trade-off). Wrapped in try/catch: xp_readerrorlog can
-// be restricted by policy, same as the trace/XE reads in autogrowth.ts/deadlocks.ts.
-export async function getRecentErrorLogEntries(): Promise<ErrorLogEntry[]> {
+// documents its own index-name-resolution trade-off). Returns the real error text on failure
+// (xp_readerrorlog can be restricted by policy, or the calling account may lack the securityadmin/
+// serveradmin-ish rights it needs) rather than silently reading as "no entries" - the same
+// "[object Object]" driver quirk queryStoreRegressions.ts had to work around applies here too.
+export async function getRecentErrorLogEntries(): Promise<ErrorLogResult> {
   const pool = getPool();
 
   try {
@@ -43,11 +50,12 @@ export async function getRecentErrorLogEntries(): Promise<ErrorLogEntry[]> {
       DROP TABLE #errorlog;
     `);
 
-    return (result.recordset as RawErrorLogRow[])
+    const entries = (result.recordset as RawErrorLogRow[])
       .map((row) => ({ timestamp: row.log_date, severity: parseSeverity(row.text), message: row.text.trim() }))
       .filter((row) => row.severity !== null && row.severity >= 16)
       .slice(0, 50);
-  } catch {
-    return [];
+    return { entries, error: null };
+  } catch (err) {
+    return { entries: [], error: extractDriverError(err).message };
   }
 }

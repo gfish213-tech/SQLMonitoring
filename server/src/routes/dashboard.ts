@@ -71,13 +71,15 @@ function tracked<T>(emit: (event: Record<string, unknown>) => void, panel: strin
 // "full" adds everything else with a larger scan surface: full per-file DMV scans done twice (IO
 // Latency), real OS-level syscalls per file (Volume Space), XML shredding (Deadlocks), a trace
 // file read off disk (Autogrowth) — exactly the kind of extra load this tool must not add
-// uninvited, but still bounded to a few seconds even on a large server. Index Stats is
-// deliberately excluded from both: its per-row scalar function call across every index-usage row
-// on the server (see indexStats.ts) was, in practice, the one check slow enough on a
-// many-database server to make a DBA wait on a whole Full Refresh just to see panels that were
-// long since ready — it's only ever fetched via its own tab's "↻ Refresh Indexes" button
-// (PANEL_FETCHERS.indexes below), never automatically. Defaults to "full" for direct API callers;
-// the client always passes an explicit mode.
+// uninvited, but still bounded to a few seconds even on a large server. Index Stats, Query Store
+// Regressions, and Error Log are all deliberately excluded from both: Index Stats' per-row scalar
+// function call across every index-usage row on the server (see indexStats.ts) was, in practice,
+// the one check slow enough on a many-database server to make a DBA wait on a whole Full Refresh
+// just to see panels that were long since ready; Query Store's per-database dynamic-SQL loop and
+// Error Log's xp_readerrorlog scan are the same shape of risk — real, but not something every
+// Quick/Full Refresh should pay for. All three are only ever fetched via their own tab's
+// "↻ Refresh <Tab>" button (PANEL_FETCHERS below), never automatically. Defaults to "full" for
+// direct API callers; the client always passes an explicit mode.
 // Streamed as newline-delimited JSON rather than one final res.json(): a Full Refresh can take
 // several seconds (IO Latency and Autogrowth especially have real scan/IO cost), and a single
 // opaque "Refreshing..." spinner for the whole thing gives a DBA no way to tell whether it's
@@ -124,15 +126,13 @@ router.get("/triage", async (req, res) => {
       return;
     }
 
-    const [tempdb, vlfCounts, ioLatency, autogrowth, deadlocks, volumeSpace, queryStoreResult, errorLogEntries] = await Promise.all([
+    const [tempdb, vlfCounts, ioLatency, autogrowth, deadlocks, volumeSpace] = await Promise.all([
       tracked(emit, "tempdb", getTempdbStats()),
       tracked(emit, "vlfCounts", getVlfCounts()),
       tracked(emit, "ioLatency", getIoLatency()),
       tracked(emit, "autogrowth", getRecentAutogrowthEvents()),
       tracked(emit, "deadlocks", getRecentDeadlocks()),
       tracked(emit, "volumeSpace", getVolumeSpace()),
-      tracked(emit, "queryStoreRegressions", getQueryStoreRegressions()),
-      tracked(emit, "errorLogEntries", getRecentErrorLogEntries()),
     ]);
 
     emit({
@@ -152,10 +152,6 @@ router.get("/triage", async (req, res) => {
         autogrowth,
         deadlocks,
         volumeSpace,
-        queryStoreRegressions: queryStoreResult.regressions,
-        queryStoreDatabaseCount: queryStoreResult.databaseCount,
-        queryStoreFailedDatabases: queryStoreResult.failedDatabases,
-        errorLogEntries,
       },
     });
     finish();
@@ -201,7 +197,10 @@ const PANEL_FETCHERS: Record<string, () => Promise<Record<string, unknown>>> = {
       queryStoreFailedDatabases: result.failedDatabases,
     };
   },
-  errorlog: async () => ({ errorLogEntries: await labeled("errorLogEntries", getRecentErrorLogEntries()) }),
+  errorlog: async () => {
+    const result = await labeled("errorLogEntries", getRecentErrorLogEntries());
+    return { errorLogEntries: result.entries, errorLogError: result.error };
+  },
   indexes: async () => ({ indexStats: await labeled("indexStats", getIndexStats()) }),
 };
 
