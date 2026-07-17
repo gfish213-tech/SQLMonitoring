@@ -150,7 +150,17 @@ function toPoolConfig(input: ConnectionInput, connectionString: string): sql.con
       min: 0,
       idleTimeoutMillis: 30000,
     },
-    requestTimeout: 15000,
+    // msnodesqlv8's Request implementation (mssql/lib/msnodesqlv8/request.js) reads this pool-wide
+    // config value fresh on every query - it has no notion of a per-request timeout override (the
+    // base tedious-backed mssql driver does, but this app doesn't use it - see Connection string /
+    // ODBC driver handling in CLAUDE.md). 15s was too tight for queryStoreRegressions.ts's
+    // cross-database window-function scan on a database with a large number of distinct queries
+    // tracked in Query Store - it was silently timing out and reading as "checked, nothing
+    // regressed" instead of "didn't finish checking". Every full-only check already accepts taking
+    // several seconds (that's what the live per-check progress checklist in dashboard.ts is for),
+    // so a longer shared ceiling costs nothing for the normal case and gives the genuinely heavy
+    // checks room to finish instead of failing silently.
+    requestTimeout: 60000,
     connectionTimeout: 10000,
   };
 }

@@ -89,41 +89,59 @@ WHERE agg.prior_interval_count >= 2
 ORDER BY regression_ratio DESC;
 `;
 
+export interface QueryStoreRegressionsResult {
+  regressions: QueryStoreRegression[];
+  databaseCount: number;
+  failedDatabases: string[];
+}
+
 async function getRegressionsForDatabase(dbName: string, originalDb: string): Promise<QueryStoreRegression[]> {
   const pool = getPool();
-  try {
-    // USE, the query, and USE back all run as one batch on whichever physical connection the
-    // pool hands this call - splitting this across separate pool.request() calls can't guarantee
-    // the same connection, which would leave a pooled connection parked on the wrong database
-    // for whatever unrelated query runs on it next (the exact bug tempdb.ts's own comments
-    // describe FILEPROPERTY hitting from the opposite direction).
-    const result = await pool.request().query(`
-      USE ${quoteIdent(dbName)};
+  const request = pool.request();
+  // A heavy database (lots of distinct queries tracked in Query Store) can make the window-
+  // function scan below take a while - msnodesqlv8's Request implementation has no per-request
+  // timeout override (unlike the base tedious-backed mssql driver), so the headroom for that
+  // comes from the pool-wide requestTimeout in db.ts, not from anything set here.
+  // TRY/CATCH inside the batch (rather than just a JS try/catch around the whole call) guarantees
+  // the final USE runs even when the regression query itself errors or times out mid-batch -
+  // without it, an error partway through would stop the batch before reaching "USE [original]",
+  // leaving whichever pooled connection handled this call parked on the wrong database for
+  // whatever unrelated query runs on it next (the exact bug tempdb.ts's own comments describe
+  // FILEPROPERTY hitting from the opposite direction). THROW re-raises after the context is
+  // restored, so the caller still sees the failure - it's the connection state, not the error
+  // itself, that this is protecting.
+  const result = await request.query(`
+    USE ${quoteIdent(dbName)};
+    BEGIN TRY
       ${REGRESSION_QUERY}
+    END TRY
+    BEGIN CATCH
+      DECLARE @qsErrMsg NVARCHAR(4000) = ERROR_MESSAGE();
       USE ${quoteIdent(originalDb)};
-    `);
-    return (result.recordset as RawRegressionRow[]).map((row) => ({
-      databaseName: dbName,
-      queryId: row.query_id,
-      queryText: row.query_text,
-      recentAvgDurationMs: row.recent_avg_duration_ms,
-      priorAvgDurationMs: row.prior_avg_duration_ms,
-      recentAvgCpuMs: row.recent_avg_cpu_ms,
-      priorAvgCpuMs: row.prior_avg_cpu_ms,
-      regressionRatio: row.regression_ratio,
-      executionCount: row.execution_count,
-    }));
-  } catch {
-    // Older compat level, Query Store in a transitioning state (e.g. READ_ONLY after hitting its
-    // size cap), or a permissions hiccup on this one database shouldn't take down every other
-    // database's results - same fail-soft-per-item shape as blocking.ts's per-lead-blocker work.
-    return [];
-  }
+      THROW 50000, @qsErrMsg, 1;
+    END CATCH
+    USE ${quoteIdent(originalDb)};
+  `);
+  return (result.recordset as RawRegressionRow[]).map((row) => ({
+    databaseName: dbName,
+    queryId: row.query_id,
+    queryText: row.query_text,
+    recentAvgDurationMs: row.recent_avg_duration_ms,
+    priorAvgDurationMs: row.prior_avg_duration_ms,
+    recentAvgCpuMs: row.recent_avg_cpu_ms,
+    priorAvgCpuMs: row.prior_avg_cpu_ms,
+    regressionRatio: row.regression_ratio,
+    executionCount: row.execution_count,
+  }));
 }
 
 // Query Store is enabled per-database (unlike every other DMV this app reads, which is
 // server-wide) - is_query_store_on tells us which databases to even bother checking.
-export async function getQueryStoreRegressions(): Promise<QueryStoreRegression[]> {
+// databaseCount/failedDatabases exist so an empty regressions list is never ambiguous between
+// "checked N databases, nothing regressed" and "every database silently failed to check" (e.g. a
+// timeout on a heavy database used to just return [] like a clean result - see REQUEST_TIMEOUT_MS
+// above and getRegressionsForDatabase's TRY/CATCH for the actual fix; this is what surfaces it).
+export async function getQueryStoreRegressions(): Promise<QueryStoreRegressionsResult> {
   const pool = getPool();
   const originalDb = getActiveConnectionMeta()?.database ?? "master";
 
@@ -134,15 +152,23 @@ export async function getQueryStoreRegressions(): Promise<QueryStoreRegression[]
     `);
     dbNames = dbResult.recordset.map((row) => row.name as string);
   } catch {
-    return [];
+    return { regressions: [], databaseCount: 0, failedDatabases: [] };
   }
 
-  const perDatabase = await Promise.all(dbNames.map((name) => getRegressionsForDatabase(name, originalDb)));
-  // Capped, unlike Consumers - Query Store history isn't naturally bounded by "currently
-  // executing" the way sys.dm_exec_requests is, so a busy multi-database server could otherwise
-  // return hundreds of rows.
-  return perDatabase
-    .flat()
-    .sort((a, b) => b.regressionRatio - a.regressionRatio)
-    .slice(0, 25);
+  const settled = await Promise.allSettled(dbNames.map((name) => getRegressionsForDatabase(name, originalDb)));
+  const regressions: QueryStoreRegression[] = [];
+  const failedDatabases: string[] = [];
+  settled.forEach((outcome, i) => {
+    if (outcome.status === "fulfilled") regressions.push(...outcome.value);
+    else failedDatabases.push(dbNames[i]);
+  });
+
+  return {
+    // Capped, unlike Consumers - Query Store history isn't naturally bounded by "currently
+    // executing" the way sys.dm_exec_requests is, so a busy multi-database server could otherwise
+    // return hundreds of rows.
+    regressions: regressions.sort((a, b) => b.regressionRatio - a.regressionRatio).slice(0, 25),
+    databaseCount: dbNames.length,
+    failedDatabases,
+  };
 }
