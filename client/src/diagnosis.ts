@@ -257,14 +257,15 @@ export function diagnose(data: TriageData): Finding[] {
   }
 
   if (data.queryStoreFailedDatabases && data.queryStoreFailedDatabases.length > 0) {
-    const n = data.queryStoreFailedDatabases.length;
+    const failures = data.queryStoreFailedDatabases;
+    const n = failures.length;
     findings.push({
       severity: "warning",
       panel: "Query Store",
-      title: `Query Store check timed out on ${n} database${n === 1 ? "" : "s"}`,
-      detail: `${data.queryStoreFailedDatabases.join(", ")} — not fully checked this refresh, so a real regression there could be missing from this snapshot, not just absent.`,
+      title: `Query Store check failed on ${n} database${n === 1 ? "" : "s"}`,
+      detail: `${failures.map((f) => `${f.database} (${f.error})`).join("; ")} — not fully checked this refresh, so a real regression there could be missing from this snapshot, not just absent.`,
       advice:
-        "This almost always means a database with a large number of distinct queries tracked in Query Store took longer than this app's query timeout to scan, not that anything is actually wrong. Try the Query Store tab's own ↻ Refresh Query Store button, which reruns just this check (the timeout budget is the same, but a retry alone sometimes clears a transient slowdown). If it keeps timing out, that database's Query Store retention/size may be large enough to need trimming (sys.database_query_store_options).",
+        "Open the Query Store tab to see the exact error per database. A timeout (a database with a large number of distinct queries tracked in Query Store) is one cause, but any SQL error would show up the same way here — read the error text first rather than assuming it's a timeout. Click ↻ Refresh Query Store to retry just this check.",
     });
   }
 

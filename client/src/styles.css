@@ -526,6 +526,11 @@ button.primary {
   margin-bottom: 10px;
 }
 
+.panel-warning-note ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
+}
+
 .panel-badge-row {
   display: flex;
   align-items: center;

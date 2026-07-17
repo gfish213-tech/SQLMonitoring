@@ -68,7 +68,10 @@ interface DriverErrorInfo {
 // msnodesqlv8 reports errors as plain objects (or arrays of them) shaped
 // { message, sqlstate, code }, not Error instances — which is why mssql's wrapping turns
 // them into "[object Object]". Pull the real diagnostic text off whatever shape we get.
-function extractDriverError(err: unknown): DriverErrorInfo {
+// Exported so any module reading per-query errors (not just pool-connect errors) can use the same
+// extraction - see queryStoreRegressions.ts, which needs the real error text for a failed
+// per-database query, not just "[object Object]" or a bare Error with no useful .message.
+export function extractDriverError(err: unknown): DriverErrorInfo {
   const first = Array.isArray(err) ? err[0] : err;
   if (first && typeof first === "object") {
     const o = first as { message?: unknown; sqlstate?: unknown };

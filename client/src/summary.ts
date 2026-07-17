@@ -289,7 +289,10 @@ export function buildSummaryText(data: TriageData, connection: ConnectionMeta): 
       lines.push(field("Query Store-enabled databases", data.queryStoreDatabaseCount));
     }
     if (data.queryStoreFailedDatabases && data.queryStoreFailedDatabases.length > 0) {
-      lines.push(`Timed out and NOT fully checked: ${data.queryStoreFailedDatabases.join(", ")} - a real regression there could be missing from this snapshot.`);
+      lines.push("Failed to check (NOT fully checked - a real regression there could be missing from this snapshot):");
+      for (const f of data.queryStoreFailedDatabases) {
+        lines.push(`- ${f.database}: ${f.error}`);
+      }
     }
     if (data.queryStoreRegressions.length === 0) {
       lines.push("No regressed queries found in any database that was successfully checked.");

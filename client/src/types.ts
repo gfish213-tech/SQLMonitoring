@@ -207,6 +207,11 @@ export interface QueryStoreRegression {
   executionCount: number;
 }
 
+export interface QueryStoreDatabaseFailure {
+  database: string;
+  error: string;
+}
+
 export interface ErrorLogEntry {
   timestamp: string;
   severity: number | null;
@@ -253,7 +258,7 @@ export interface TriageData {
   volumeSpace?: VolumeSpaceRow[];
   queryStoreRegressions?: QueryStoreRegression[];
   queryStoreDatabaseCount?: number;
-  queryStoreFailedDatabases?: string[];
+  queryStoreFailedDatabases?: QueryStoreDatabaseFailure[];
   errorLogEntries?: ErrorLogEntry[];
   indexStats?: IndexStats;
 }

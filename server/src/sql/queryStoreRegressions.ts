@@ -1,4 +1,4 @@
-import { getPool, getActiveConnectionMeta } from "../db";
+import { getPool, getActiveConnectionMeta, extractDriverError } from "../db";
 
 export interface QueryStoreRegression {
   databaseName: string;
@@ -89,10 +89,15 @@ WHERE agg.prior_interval_count >= 2
 ORDER BY regression_ratio DESC;
 `;
 
+export interface QueryStoreDatabaseFailure {
+  database: string;
+  error: string;
+}
+
 export interface QueryStoreRegressionsResult {
   regressions: QueryStoreRegression[];
   databaseCount: number;
-  failedDatabases: string[];
+  failedDatabases: QueryStoreDatabaseFailure[];
 }
 
 async function getRegressionsForDatabase(dbName: string, originalDb: string): Promise<QueryStoreRegression[]> {
@@ -157,10 +162,17 @@ export async function getQueryStoreRegressions(): Promise<QueryStoreRegressionsR
 
   const settled = await Promise.allSettled(dbNames.map((name) => getRegressionsForDatabase(name, originalDb)));
   const regressions: QueryStoreRegression[] = [];
-  const failedDatabases: string[] = [];
+  const failedDatabases: QueryStoreDatabaseFailure[] = [];
   settled.forEach((outcome, i) => {
-    if (outcome.status === "fulfilled") regressions.push(...outcome.value);
-    else failedDatabases.push(dbNames[i]);
+    if (outcome.status === "fulfilled") {
+      regressions.push(...outcome.value);
+    } else {
+      // Same driver quirk db.ts's own connect-time errors have to work around: msnodesqlv8
+      // reports query errors as plain objects, not Error instances, so a bare .message here would
+      // often just show "[object Object]" instead of the actual T-SQL error text - exactly the
+      // kind of silent non-answer this whole failedDatabases mechanism exists to avoid.
+      failedDatabases.push({ database: dbNames[i], error: extractDriverError(outcome.reason).message });
+    }
   });
 
   return {

@@ -1,6 +1,6 @@
 import { Section } from "./Section";
 import { truncate } from "../format";
-import type { QueryStoreRegression } from "../types";
+import type { QueryStoreDatabaseFailure, QueryStoreRegression } from "../types";
 
 export function QueryStorePanel({
   queryStoreRegressions,
@@ -9,7 +9,7 @@ export function QueryStorePanel({
 }: {
   queryStoreRegressions: QueryStoreRegression[];
   queryStoreDatabaseCount?: number;
-  queryStoreFailedDatabases?: string[];
+  queryStoreFailedDatabases?: QueryStoreDatabaseFailure[];
 }) {
   const databaseCount = queryStoreDatabaseCount ?? 0;
   const failedDatabases = queryStoreFailedDatabases ?? [];
@@ -41,8 +41,17 @@ export function QueryStorePanel({
       <>
         {failedDatabases.length > 0 && (
           <div className="panel-warning-note">
-            ⚠ Could not check {failedDatabases.length} database{failedDatabases.length === 1 ? "" : "s"} in time: {failedDatabases.join(", ")}. Likely a
-            timeout on a database with a large number of distinct queries tracked in Query Store — click ↻ Refresh Query Store above to retry.
+            <div>
+              ⚠ Could not check {failedDatabases.length} database{failedDatabases.length === 1 ? "" : "s"} — click{" "}
+              <strong>↻ Refresh Query Store</strong> above to retry:
+            </div>
+            <ul>
+              {failedDatabases.map((f) => (
+                <li key={f.database}>
+                  <strong>{f.database}</strong>: {f.error}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
         {queryStoreRegressions.length === 0 ? (
