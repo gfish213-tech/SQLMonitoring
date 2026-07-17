@@ -256,6 +256,18 @@ export function diagnose(data: TriageData): Finding[] {
     });
   }
 
+  if (data.queryStoreFailedDatabases && data.queryStoreFailedDatabases.length > 0) {
+    const n = data.queryStoreFailedDatabases.length;
+    findings.push({
+      severity: "warning",
+      panel: "Query Store",
+      title: `Query Store check timed out on ${n} database${n === 1 ? "" : "s"}`,
+      detail: `${data.queryStoreFailedDatabases.join(", ")} — not fully checked this refresh, so a real regression there could be missing from this snapshot, not just absent.`,
+      advice:
+        "This almost always means a database with a large number of distinct queries tracked in Query Store took longer than this app's query timeout to scan, not that anything is actually wrong. Try the Query Store tab's own ↻ Refresh Query Store button, which reruns just this check (the timeout budget is the same, but a retry alone sometimes clears a transient slowdown). If it keeps timing out, that database's Query Store retention/size may be large enough to need trimming (sys.database_query_store_options).",
+    });
+  }
+
   for (const qs of data.queryStoreRegressions ?? []) {
     findings.push({
       severity: qs.regressionRatio >= 5 || qs.recentAvgDurationMs >= 5000 ? "critical" : "warning",
