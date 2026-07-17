@@ -124,7 +124,7 @@ router.get("/triage", async (req, res) => {
       return;
     }
 
-    const [tempdb, vlfCounts, ioLatency, autogrowth, deadlocks, volumeSpace, queryStoreRegressions, errorLogEntries] = await Promise.all([
+    const [tempdb, vlfCounts, ioLatency, autogrowth, deadlocks, volumeSpace, queryStoreResult, errorLogEntries] = await Promise.all([
       tracked(emit, "tempdb", getTempdbStats()),
       tracked(emit, "vlfCounts", getVlfCounts()),
       tracked(emit, "ioLatency", getIoLatency()),
@@ -152,7 +152,9 @@ router.get("/triage", async (req, res) => {
         autogrowth,
         deadlocks,
         volumeSpace,
-        queryStoreRegressions,
+        queryStoreRegressions: queryStoreResult.regressions,
+        queryStoreDatabaseCount: queryStoreResult.databaseCount,
+        queryStoreFailedDatabases: queryStoreResult.failedDatabases,
         errorLogEntries,
       },
     });
@@ -191,7 +193,14 @@ const PANEL_FETCHERS: Record<string, () => Promise<Record<string, unknown>>> = {
   iolatency: async () => ({ ioLatency: await labeled("ioLatency", getIoLatency()) }),
   autogrowth: async () => ({ autogrowth: await labeled("autogrowth", getRecentAutogrowthEvents()) }),
   deadlocks: async () => ({ deadlocks: await labeled("deadlocks", getRecentDeadlocks()) }),
-  querystore: async () => ({ queryStoreRegressions: await labeled("queryStoreRegressions", getQueryStoreRegressions()) }),
+  querystore: async () => {
+    const result = await labeled("queryStoreRegressions", getQueryStoreRegressions());
+    return {
+      queryStoreRegressions: result.regressions,
+      queryStoreDatabaseCount: result.databaseCount,
+      queryStoreFailedDatabases: result.failedDatabases,
+    };
+  },
   errorlog: async () => ({ errorLogEntries: await labeled("errorLogEntries", getRecentErrorLogEntries()) }),
   indexes: async () => ({ indexStats: await labeled("indexStats", getIndexStats()) }),
 };

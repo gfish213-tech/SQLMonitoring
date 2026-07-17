@@ -252,6 +252,8 @@ export interface TriageData {
   deadlocks?: DeadlockEvent[];
   volumeSpace?: VolumeSpaceRow[];
   queryStoreRegressions?: QueryStoreRegression[];
+  queryStoreDatabaseCount?: number;
+  queryStoreFailedDatabases?: string[];
   errorLogEntries?: ErrorLogEntry[];
   indexStats?: IndexStats;
 }
