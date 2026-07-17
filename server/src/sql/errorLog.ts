@@ -40,10 +40,15 @@ export async function getRecentErrorLogEntries(): Promise<ErrorLogResult> {
   const pool = getPool();
 
   try {
+    // EXEC's positional-parameter syntax only accepts constants or variables, not arbitrary
+    // expressions - DATEADD(HOUR, -24, GETDATE()) passed directly as a parameter is a syntax
+    // error ("Incorrect syntax near 'HOUR'"), not a runtime one. Computing it into @startTime
+    // first is required, not just style.
     const result = await pool.request().query(`
+      DECLARE @startTime DATETIME = DATEADD(HOUR, -24, GETDATE());
       CREATE TABLE #errorlog (LogDate DATETIME, ProcessInfo NVARCHAR(50), Text NVARCHAR(MAX));
       INSERT INTO #errorlog (LogDate, ProcessInfo, Text)
-      EXEC xp_readerrorlog 0, 1, NULL, NULL, DATEADD(HOUR, -24, GETDATE()), NULL;
+      EXEC xp_readerrorlog 0, 1, NULL, NULL, @startTime, NULL;
       SELECT TOP 200 CONVERT(varchar(33), LogDate, 126) AS log_date, Text AS text
       FROM #errorlog
       ORDER BY LogDate DESC;
