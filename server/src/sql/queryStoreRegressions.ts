@@ -33,8 +33,11 @@ function quoteIdent(name: string): string {
   return `[${name.replace(/]/g, "]]")}]`;
 }
 
-// One query_id can appear more than once in the same interval when it has multiple plans
-// (parameter sniffing, plan flips); interval_stats collapses those into one execution-weighted
+// sys.query_store_runtime_stats is keyed by plan_id, not query_id - query_id only exists on
+// sys.query_store_plan (which maps plan_id -> query_id) and sys.query_store_query. Joining
+// through query_store_plan here is what makes "one query_id can appear more than once in the
+// same interval when it has multiple plans" (parameter sniffing, plan flips) an actual possibility
+// worth collapsing below, not just a comment - interval_stats aggregates to one execution-weighted
 // average per (query_id, interval) first, so ranking by start_time compares whole intervals, not
 // a coin flip between two same-time rows. rn = 1 is the most recent interval; rn 2-6 is that same
 // query's own recent history (roughly the last several hours at the default 60-minute
@@ -43,17 +46,18 @@ function quoteIdent(name: string): string {
 const REGRESSION_QUERY = `
 ;WITH interval_stats AS (
   SELECT
-    rs.query_id,
+    p.query_id,
     rsi.start_time,
     SUM(rs.avg_duration * rs.count_executions) / NULLIF(SUM(rs.count_executions), 0) AS interval_avg_duration,
     SUM(rs.avg_cpu_time * rs.count_executions) / NULLIF(SUM(rs.count_executions), 0) AS interval_avg_cpu,
     SUM(rs.count_executions) AS interval_executions
   FROM sys.query_store_runtime_stats rs
+  INNER JOIN sys.query_store_plan p ON p.plan_id = rs.plan_id
   INNER JOIN sys.query_store_runtime_stats_interval rsi
     ON rsi.runtime_stats_interval_id = rs.runtime_stats_interval_id
   WHERE rs.execution_type = 0
     AND rsi.start_time > DATEADD(HOUR, -24, GETUTCDATE())
-  GROUP BY rs.query_id, rsi.start_time
+  GROUP BY p.query_id, rsi.start_time
 ),
 ranked AS (
   SELECT *, ROW_NUMBER() OVER (PARTITION BY query_id ORDER BY start_time DESC) AS rn
