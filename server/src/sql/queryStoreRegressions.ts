@@ -10,6 +10,11 @@ export interface QueryStoreRegression {
   priorAvgCpuMs: number;
   regressionRatio: number;
   executionCount: number;
+  // True when executionCount is below LOW_CONFIDENCE_EXECUTION_THRESHOLD - the ratio already had
+  // to clear a higher bar to qualify at all (see REGRESSION_QUERY's WHERE clause), but the client
+  // still needs to know which rows that applied to, so it can visibly flag them as less certain
+  // rather than presenting a single-execution outlier with the same confidence as a well-sampled one.
+  lowConfidence: boolean;
 }
 
 interface RawRegressionRow {
@@ -43,6 +48,14 @@ function quoteIdent(name: string): string {
 // query's own recent history (roughly the last several hours at the default 60-minute
 // interval_length_minutes) - a query is judged regressed against itself, not a fixed threshold,
 // so a query that's always been slow doesn't fire, and a fast query that got 3x slower does.
+// A ratio built from a single recent execution is far noisier than one built from many - one
+// slow run could just be a cold cache or a brief wait, not a real regression, and averaging
+// against a similarly thin prior sample doesn't fix that. Below LOW_CONFIDENCE_EXECUTION_THRESHOLD
+// recent executions, the bar is raised to LOW_CONFIDENCE_RATIO_THRESHOLD instead of the normal
+// REGRESSION_RATIO_THRESHOLD, so a thin sample needs much stronger evidence before it counts.
+const REGRESSION_RATIO_THRESHOLD = 3;
+const LOW_CONFIDENCE_EXECUTION_THRESHOLD = 5;
+const LOW_CONFIDENCE_RATIO_THRESHOLD = 5;
 const REGRESSION_QUERY = `
 ;WITH interval_stats AS (
   SELECT
@@ -89,7 +102,9 @@ INNER JOIN sys.query_store_query q ON q.query_id = agg.query_id
 INNER JOIN sys.query_store_query_text qt ON qt.query_text_id = q.query_text_id
 WHERE agg.prior_interval_count >= 2
   AND agg.recent_avg_duration >= 1000000
-  AND agg.recent_avg_duration >= agg.prior_avg_duration * 3
+  AND agg.recent_avg_duration >= agg.prior_avg_duration * (
+    CASE WHEN agg.recent_executions < ${LOW_CONFIDENCE_EXECUTION_THRESHOLD} THEN ${LOW_CONFIDENCE_RATIO_THRESHOLD} ELSE ${REGRESSION_RATIO_THRESHOLD} END
+  )
 ORDER BY regression_ratio DESC;
 `;
 
@@ -141,6 +156,7 @@ async function getRegressionsForDatabase(dbName: string, originalDb: string): Pr
     priorAvgCpuMs: row.prior_avg_cpu_ms,
     regressionRatio: row.regression_ratio,
     executionCount: row.execution_count,
+    lowConfidence: row.execution_count < LOW_CONFIDENCE_EXECUTION_THRESHOLD,
   }));
 }
 

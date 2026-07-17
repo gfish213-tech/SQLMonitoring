@@ -31,7 +31,7 @@ export function QueryStorePanel({
       title="Query Store Regressions"
       badge={
         <span className="panel-hint">
-          queries ≥3x slower than their own recent average · last 24h ·{" "}
+          queries ≥3x slower than their own recent average (≥5x if fewer than 5 recent executions) · last 24h ·{" "}
           {databaseCount === 0 ? "no databases have Query Store enabled" : `${checkedCount} of ${databaseCount} Query Store-enabled database(s) checked`}
         </span>
       }
@@ -79,7 +79,18 @@ export function QueryStorePanel({
                     <td title={row.queryText}>{truncate(row.queryText, 120)}</td>
                     <td className="num">{row.recentAvgDurationMs.toFixed(0)} ms</td>
                     <td className="num">{row.priorAvgDurationMs.toFixed(0)} ms</td>
-                    <td className="num">{row.regressionRatio.toFixed(1)}x</td>
+                    <td className="num">
+                      {row.regressionRatio.toFixed(1)}x
+                      {row.lowConfidence && (
+                        <span
+                          className="wait-type-cell"
+                          title="Low confidence: built from only a few recent executions. A ratio from a thin sample can look dramatic just from normal run-to-run variance (cold cache, a brief wait) - worth a manual check before treating this as a confirmed regression."
+                        >
+                          {" "}
+                          ⚠
+                        </span>
+                      )}
+                    </td>
                     <td className="num">{row.recentAvgCpuMs.toFixed(0)} ms</td>
                     <td className="num">{row.executionCount}</td>
                   </tr>

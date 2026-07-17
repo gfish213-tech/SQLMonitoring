@@ -205,6 +205,7 @@ export interface QueryStoreRegression {
   priorAvgCpuMs: number;
   regressionRatio: number;
   executionCount: number;
+  lowConfidence: boolean;
 }
 
 export interface QueryStoreDatabaseFailure {
