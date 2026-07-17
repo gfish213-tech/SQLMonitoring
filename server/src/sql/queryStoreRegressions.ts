@@ -146,14 +146,18 @@ async function getRegressionsForDatabase(dbName: string, originalDb: string): Pr
 
 const MAX_REGRESSIONS_TOTAL = 25;
 const MIN_REGRESSIONS_PER_DATABASE = 5;
+const MAX_REGRESSIONS_PER_DATABASE = 8;
 
 // A flat "sort everything by ratio, take the global top 25" cap sounds right but isn't: one
 // database with many severely-regressed queries can fill the entire list and crowd out every
 // other database's regressions, even ones that are still worth knowing about - a DBA watching 4
 // databases would see only the noisiest one and have no idea the other 3 have anything going on
-// at all. Guaranteeing each database that has regressions at least MIN_REGRESSIONS_PER_DATABASE
-// slots (its own worst first) before filling the rest of the budget with the next-worst overall
-// keeps the list severity-ordered without letting one database silently own the whole thing.
+// at all. A floor alone doesn't fix this either - guaranteeing 5 slots per database still leaves
+// the "fill the rest with next-worst overall" phase free to pick almost entirely from whichever
+// database has the longest tail of severe regressions (in practice, one busy ETL-style database
+// crowded out three others down to a single barely-qualifying row). MAX_REGRESSIONS_PER_DATABASE
+// is the actual fix: once a database hits its ceiling, its remaining rows are skipped in favor of
+// the next-worst row from a database that still has room, regardless of raw ratio.
 function selectAcrossDatabases(regressions: QueryStoreRegression[]): QueryStoreRegression[] {
   const byDatabase = new Map<string, QueryStoreRegression[]>();
   for (const r of regressions) {
@@ -163,13 +167,27 @@ function selectAcrossDatabases(regressions: QueryStoreRegression[]): QueryStoreR
   }
   for (const list of byDatabase.values()) list.sort((a, b) => b.regressionRatio - a.regressionRatio);
 
+  const perDatabaseCount = new Map<string, number>();
+  const selected: QueryStoreRegression[] = [];
+
   const guaranteed: QueryStoreRegression[] = [];
   for (const list of byDatabase.values()) guaranteed.push(...list.slice(0, MIN_REGRESSIONS_PER_DATABASE));
+  for (const r of guaranteed) {
+    selected.push(r);
+    perDatabaseCount.set(r.databaseName, (perDatabaseCount.get(r.databaseName) ?? 0) + 1);
+  }
 
   const guaranteedSet = new Set(guaranteed);
   const remainder = regressions.filter((r) => !guaranteedSet.has(r)).sort((a, b) => b.regressionRatio - a.regressionRatio);
+  for (const r of remainder) {
+    if (selected.length >= MAX_REGRESSIONS_TOTAL) break;
+    const count = perDatabaseCount.get(r.databaseName) ?? 0;
+    if (count >= MAX_REGRESSIONS_PER_DATABASE) continue;
+    selected.push(r);
+    perDatabaseCount.set(r.databaseName, count + 1);
+  }
 
-  return [...guaranteed, ...remainder].slice(0, MAX_REGRESSIONS_TOTAL).sort((a, b) => b.regressionRatio - a.regressionRatio);
+  return selected.sort((a, b) => b.regressionRatio - a.regressionRatio);
 }
 
 // Query Store is enabled per-database (unlike every other DMV this app reads, which is
